@@ -15,6 +15,7 @@ export const GET_ADMIN_DASHBOARD = graphql(`
                 }
             }
             pageInfo {
+                total
                 hasNextPage
             }
         }
@@ -25,6 +26,7 @@ export const GET_ADMIN_DASHBOARD = graphql(`
                 }
             }
             pageInfo {
+                total
                 hasNextPage
             }
         }
@@ -35,6 +37,7 @@ export const GET_ADMIN_DASHBOARD = graphql(`
                 }
             }
             pageInfo {
+                total
                 hasNextPage
             }
         }

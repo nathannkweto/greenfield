@@ -215,7 +215,7 @@ export default function AdminDashboard() {
                                         Collected Fees
                                     </Typography>
                                     {loading ? (
-                                        <Skeleton variant="text" width={120} height={40} sx={{ bgcolor: 'rgba(255,255,255,0.2)' }} />
+                                        <Skeleton variant="text" width={120} height={40} sx={{ backgroundColor: 'rgba(255,255,255,0.2)' }} />
                                     ) : (
                                         <Typography variant="h4" sx={{ fontWeight: 800, overflowWrap: 'anywhere' }}>
                                             {financials?.totalCollected?.toLocaleString() ?? 0}{' '}
@@ -237,7 +237,7 @@ export default function AdminDashboard() {
                                         Outstanding
                                     </Typography>
                                     {loading ? (
-                                        <Skeleton variant="text" width={120} height={40} sx={{ bgcolor: 'rgba(255,255,255,0.2)' }} />
+                                        <Skeleton variant="text" width={120} height={40} sx={{ backgroundColor: 'rgba(255,255,255,0.2)' }} />
                                     ) : (
                                         <Typography variant="h5" sx={{ fontWeight: 700, overflowWrap: 'anywhere', color: '#ffb7b2' }}>
                                             {financials?.totalOutstanding?.toLocaleString() ?? 0}{' '}
