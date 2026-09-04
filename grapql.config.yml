@@ -1,2 +1,2 @@
-schema: "http://localhost:8000/graphql"
+schema: "${VITE_GRAPHQL_ENDPOINT:-${VITE_API_BASE_URL}/graphql}"
 documents: "src/**/*.{ts,tsx}"
