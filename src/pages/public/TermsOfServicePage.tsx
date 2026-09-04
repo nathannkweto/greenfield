@@ -134,7 +134,7 @@ export default function TermsOfServicePage() {
                                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                                                 <EmailIcon fontSize="small" color="primary" />
                                                 <Typography variant="body2" color="text.secondary">
-                                                    legal@{COLLEGE_INFO.name.toLowerCase().replace(/\s+/g, '')}.edu
+                                                    {COLLEGE_INFO.email}
                                                 </Typography>
                                             </Box>
                                         </Stack>

@@ -1,10 +1,13 @@
 import { useState, useMemo, useEffect, type ReactNode } from 'react';
 import { ThemeProvider, createTheme, CssBaseline, type PaletteMode } from "@mui/material";
-import { getDesignTokens } from "../theme.ts";
-import { ColorModeContext } from "./ColorModeContext.ts"; // Import the context we just made
+import { getDesignTokens } from "../theme";
+import { ColorModeContext } from "./ColorModeContext";
 
-// Strictly exporting the React Component
-export default function ColorModeProvider({ children }: { children: ReactNode }) {
+interface ColorModeProviderProps {
+    children: ReactNode;
+}
+
+export default function ColorModeProvider({ children }: ColorModeProviderProps) {
     const [mode, setMode] = useState<PaletteMode>(() => {
         const savedMode = localStorage.getItem('themeMode');
         return (savedMode === 'dark' || savedMode === 'light') ? savedMode : 'light';

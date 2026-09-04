@@ -1,17 +1,21 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ApolloProvider } from '@apollo/client/react';
-import { client } from './apolloClient'; // Path to your Apollo configuration
 import { RouterProvider } from 'react-router-dom';
-import { router } from './router';
+
+import { client } from './apolloClient';
 import ColorModeProvider from './context/ColorModeProvider';
+import { router } from './router';
 import './index.css';
+import { AuthProvider } from "./context/AuthProvider";
 
 createRoot(document.getElementById('root')!).render(
     <StrictMode>
         <ApolloProvider client={client}>
             <ColorModeProvider>
-                <RouterProvider router={router} />
+                <AuthProvider>
+                    <RouterProvider router={router} />
+                </AuthProvider>
             </ColorModeProvider>
         </ApolloProvider>
     </StrictMode>

@@ -7,6 +7,7 @@ import {
     Button,
     Paper,
     Stack,
+    Alert,
     useTheme,
     useMediaQuery
 } from '@mui/material';
@@ -27,6 +28,7 @@ export default function ContactPage() {
         subject: '',
         message: '',
     });
+    const [notice, setNotice] = useState<string | null>(null);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
@@ -35,9 +37,7 @@ export default function ContactPage() {
 
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        console.log('Form Submitted:', formData);
-        alert(`Thank you for contacting ${COLLEGE_INFO.name}! We will get back to you shortly.`);
-        setFormData({ name: '', email: '', subject: '', message: '' });
+        setNotice('Online contact submission is not available yet. Please use the email address or phone number shown here.');
     };
 
     return (
@@ -74,6 +74,7 @@ export default function ContactPage() {
                         <Typography variant="h5" sx={{ fontWeight: 800, color: 'text.primary', mb: 3 }}>
                             Send us a Message
                         </Typography>
+                        {notice && <Alert severity="info" sx={{ mb: 2 }} onClose={() => setNotice(null)}>{notice}</Alert>}
 
                         <Grid container spacing={2.5}>
                             <Grid size={{ xs: 12, sm: 6 }}>

@@ -22,7 +22,7 @@ export default function Footer() {
         { label: 'Academic Programs', path: '/programs' },
         { label: 'Apply for Admission', path: '/apply' },
         { label: 'Contact Us', path: '/contact' },
-        { label: 'Portal Sign In', path: '/login' },
+        { label: 'Login', path: '/login' },
     ];
 
     const academicLinks = [

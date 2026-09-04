@@ -15,8 +15,8 @@ export interface TermsOfServiceData {
 
 export const TERMS_OF_SERVICE_DATA: TermsOfServiceData = {
     title: 'Terms of Service',
-    lastUpdated: 'August 1, 2026',
-    effectiveDate: 'August 1, 2026',
+    lastUpdated: 'August 13, 2026',
+    effectiveDate: 'September 1, 2026',
     introduction:
         'Welcome to our official institutional website and online portal. By accessing or using our website, applicant portal, student portal, or associated services, you agree to comply with and be bound by the following Terms of Service. Please read these terms carefully before proceeding.',
     sections: [

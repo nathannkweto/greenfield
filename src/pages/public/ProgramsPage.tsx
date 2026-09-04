@@ -15,31 +15,90 @@ import {
     ListItem,
     ListItemButton,
     ListItemText,
-    IconButton
+    IconButton,
+    CircularProgress,
+    Alert
 } from '@mui/material';
 import SchoolIcon from '@mui/icons-material/School';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import CloseIcon from '@mui/icons-material/Close';
-import { PROGRAMS } from '../../data/programs';
-import { SCHOOLS } from '../../data/schools';
+import { useQuery } from '@apollo/client/react';
+import { GET_PROGRAMS_PAGE_DATA } from './public.ts';
+
+interface School {
+    id: string;
+    name: string;
+    description?: string;
+}
+
+interface Program {
+    id: string;
+    title: string;
+    shortDescription: string;
+    schoolId?: string;
+    school?: School;
+}
+
+// Relay Connection GraphQL Types
+interface Connection<T> {
+    edges?: Array<{
+        node: T;
+    }>;
+    data?: T[];
+}
+
+interface GetProgramsPageDataResponse {
+    schools?: School[] | Connection<School>;
+    programs?: Program[] | Connection<Program>;
+}
 
 export default function ProgramsPage() {
-    const [selectedSchoolId, setSelectedSchoolId] = useState('All');
-    const [isFilterOpen, setIsFilterOpen] = useState(false); // Mobile filter state
+    const [selectedSchoolId, setSelectedSchoolId] = useState<string>('All');
+    const [isFilterOpen, setIsFilterOpen] = useState<boolean>(false);
 
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
-    const selectedSchool = SCHOOLS.find(s => s.id === selectedSchoolId);
-    const pageDescription = selectedSchool
-        ? selectedSchool.description
-        : "Explore our wide range of industry-relevant programs across all our specialized schools.";
+    // Fetch GraphQL Data
+    const { loading, error, data } = useQuery<GetProgramsPageDataResponse>(GET_PROGRAMS_PAGE_DATA);
+
+    if (loading) {
+        return (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 10 }}>
+                <CircularProgress />
+            </Box>
+        );
+    }
+
+    if (error) {
+        return (
+            <Container maxWidth="lg" sx={{ py: 6 }}>
+                <Alert severity="error">Failed to load programs. Please try again later.</Alert>
+            </Container>
+        );
+    }
+
+    // Safely unwrap Relay connections (edges -> node), flat arrays, or standard pagination
+    const schools: School[] = Array.isArray(data?.schools)
+        ? data.schools
+        : 'edges' in (data?.schools || {})
+            ? data?.schools?.edges?.map((edge) => edge.node) || []
+            : data?.schools?.data || [];
+
+    const programs: Program[] = Array.isArray(data?.programs)
+        ? data.programs
+        : 'edges' in (data?.programs || {})
+            ? data?.programs?.edges?.map((edge) => edge.node) || []
+            : data?.programs?.data || [];
+
+    const selectedSchool = schools.find((s) => s.id === selectedSchoolId);
+    const pageDescription = selectedSchool?.description
+        || "Explore our wide range of industry-relevant programs across all our specialized schools.";
 
     const filteredPrograms = selectedSchoolId === 'All'
-        ? PROGRAMS
-        : PROGRAMS.filter(p => p.schoolId === selectedSchoolId);
+        ? programs
+        : programs.filter((p) => (p.schoolId || p.school?.id) === selectedSchoolId);
 
-    // Helper to handle filter selection on mobile
     const handleSelectMobile = (id: string) => {
         setSelectedSchoolId(id);
         setIsFilterOpen(false);
@@ -47,8 +106,7 @@ export default function ProgramsPage() {
 
     return (
         <Container maxWidth="lg" sx={{ py: isMobile ? 4 : 6, pt: isMobile ? { xs: '80px', sm: '88px' } : undefined }}>
-
-            {/* ================= HEADER AREA ================= */}
+            {/* HEADER AREA */}
             <Box sx={{ mb: isMobile ? 3 : 5, textAlign: isMobile ? 'left' : 'center', px: isMobile ? 2 : 0 }}>
                 <Typography variant={isMobile ? "h4" : "h3"} component="h1" sx={{ fontWeight: 800, mb: 1.5 }}>
                     {selectedSchool ? selectedSchool.name : 'Academic Programs'}
@@ -58,7 +116,7 @@ export default function ProgramsPage() {
                 </Typography>
             </Box>
 
-            {/* ================= DESKTOP FILTER TABS ================= */}
+            {/* DESKTOP FILTER TABS */}
             {!isMobile && (
                 <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1.5, mb: 6, flexWrap: 'wrap' }}>
                     <Button
@@ -67,7 +125,7 @@ export default function ProgramsPage() {
                     >
                         All
                     </Button>
-                    {SCHOOLS.map((school) => (
+                    {schools.map((school) => (
                         <Button
                             key={school.id}
                             variant={selectedSchoolId === school.id ? 'contained' : 'outlined'}
@@ -78,7 +136,8 @@ export default function ProgramsPage() {
                     ))}
                 </Box>
             )}
-            {/* ================= MOBILE NATIVE FILTER TRIGGER ================= */}
+
+            {/* MOBILE FILTER TRIGGER */}
             {isMobile && (
                 <Box sx={{ px: 2, mb: 4 }}>
                     <Button
@@ -87,12 +146,10 @@ export default function ProgramsPage() {
                         fullWidth
                         startIcon={<FilterListIcon />}
                         onClick={() => setIsFilterOpen(true)}
-                        style={{
+                        sx={{
                             justifyContent: 'space-between',
-                            paddingTop: '12px',
-                            paddingBottom: '12px',
-                            paddingLeft: '16px',
-                            paddingRight: '16px',
+                            py: 1.5,
+                            px: 2,
                             borderRadius: '12px',
                             borderColor: '#e2e8f0',
                             textTransform: 'none',
@@ -102,39 +159,35 @@ export default function ProgramsPage() {
                         Filter: {selectedSchool ? selectedSchool.name : 'All Programs'}
                     </Button>
 
-                    {/* App-style Drawer/Dialog Overlay compatible with both v4 and v5 */}
-                    <Dialog
-                        open={isFilterOpen}
-                        onClose={() => setIsFilterOpen(false)}
-                        fullWidth
-                        maxWidth="xs"
-                        style={{
-                            // Places the dialog cleanly at the bottom of the screen like a mobile sheet
-                            display: 'flex',
-                            alignItems: 'flex-end'
-                        }}
-                    >
-                        <DialogTitle style={{ fontWeight: 800, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <Typography variant="h6" style={{ fontWeight: 800 }}>Select School</Typography>
-                            <IconButton onClick={() => setIsFilterOpen(false)}>
+                    <Dialog open={isFilterOpen} onClose={() => setIsFilterOpen(false)} fullWidth maxWidth="xs">
+                        {/* component="div" stops DialogTitle from rendering an <h2>, fixing the hydration error */}
+                        <DialogTitle component="div" sx={{ fontWeight: 800, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <Typography variant="h6" sx={{ fontWeight: 800 }}>Select School</Typography>
+                            <IconButton onClick={() => setIsFilterOpen(false)} aria-label="close">
                                 <CloseIcon />
                             </IconButton>
                         </DialogTitle>
-                        <List style={{ padding: '8px' }}>
+                        <List sx={{ p: 1 }}>
                             <ListItem disablePadding>
-                                <ListItemButton onClick={() => handleSelectMobile('All')} selected={selectedSchoolId === 'All'} style={{ borderRadius: '8px' }}>
+                                <ListItemButton onClick={() => handleSelectMobile('All')} selected={selectedSchoolId === 'All'} sx={{ borderRadius: 1 }}>
                                     <ListItemText
-                                        primary="All Programs"
-                                        style={{ fontWeight: selectedSchoolId === 'All' ? 700 : 500 }}
+                                        primary={
+                                            <Typography sx={{ fontWeight: selectedSchoolId === 'All' ? 700 : 500 }}>
+                                                All Programs
+                                            </Typography>
+                                        }
                                     />
                                 </ListItemButton>
                             </ListItem>
-                            {SCHOOLS.map((school) => (
+                            {schools.map((school) => (
                                 <ListItem key={school.id} disablePadding>
-                                    <ListItemButton onClick={() => handleSelectMobile(school.id)} selected={selectedSchoolId === school.id} style={{ borderRadius: '8px' }}>
+                                    <ListItemButton onClick={() => handleSelectMobile(school.id)} selected={selectedSchoolId === school.id} sx={{ borderRadius: 1 }}>
                                         <ListItemText
-                                            primary={school.name}
-                                            style={{ fontWeight: selectedSchoolId === school.id ? 700 : 500 }}
+                                            primary={
+                                                <Typography sx={{ fontWeight: selectedSchoolId === school.id ? 700 : 500 }}>
+                                                    {school.name}
+                                                </Typography>
+                                            }
                                         />
                                     </ListItemButton>
                                 </ListItem>
@@ -144,7 +197,7 @@ export default function ProgramsPage() {
                 </Box>
             )}
 
-            {/* ================= PROGRAMS CONTAINER ================= */}
+            {/* PROGRAMS CONTAINER */}
             <Box sx={{
                 display: 'grid',
                 gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: 'repeat(3, 1fr)' },
@@ -152,7 +205,7 @@ export default function ProgramsPage() {
                 px: isMobile ? 2 : 0
             }}>
                 {filteredPrograms.map((program) => {
-                    const school = SCHOOLS.find(s => s.id === program.schoolId);
+                    const school = schools.find((s) => s.id === program.schoolId) || program.school;
                     return (
                         <Paper
                             key={program.id}
@@ -163,15 +216,23 @@ export default function ProgramsPage() {
                                 borderColor: '#e5e7eb',
                                 display: 'flex',
                                 flexDirection: 'column',
-                                bgcolor: 'background.paper'
+                                backgroundColor: 'background.paper'
                             }}
                         >
                             <Box sx={{ mb: 2 }}>
-                                <Chip
-                                    label={school?.name}
-                                    size="small"
-                                    sx={{ mb: 1.5, backgroundColor: 'rgba(46, 125, 50, 0.08)', color: 'primary.main', fontWeight: 600, maxWidth: '100%' }}
-                                />
+                                {school?.name && (
+                                    <Chip
+                                        label={school.name}
+                                        size="small"
+                                        sx={{
+                                            mb: 1.5,
+                                            backgroundColor: 'rgba(46, 125, 50, 0.08)',
+                                            color: 'primary.main',
+                                            fontWeight: 600,
+                                            maxWidth: '100%'
+                                        }}
+                                    />
+                                )}
                                 <Typography variant="h6" sx={{ fontWeight: 800, mb: 1, fontSize: '1.15rem', lineHeight: 1.3 }}>
                                     {program.title}
                                 </Typography>

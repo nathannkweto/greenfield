@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import Axios, { AxiosError } from 'axios';
 import {
     TextField,
@@ -18,66 +18,73 @@ import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 
-// Adjust this import path to match your generated Orval folder location
-import { getPublicAuth } from '../../api/generated';
+import { getAuth } from '../../api/generated';
+import { useAuth } from '../../context/AuthContext';
+import { getUserRoles, getRoleBasedPath, isPathAllowedForRoles } from '../../utils/rbac';
 
 interface ValidationErrorResponse {
     errors?: Record<string, string[]>;
 }
 
+const blockInjectionRegex = /^[^<>/\\"'%]+$/;
+
+const validationSchema = Yup.object({
+    email: Yup.string().email('Invalid email address').required('Email is required'),
+    password: Yup.string()
+        .min(3, 'Password must be at least 7 characters')
+        .matches(blockInjectionRegex, 'Password contains invalid characters')
+        .required('Password is required'),
+});
+
 export default function LoginPage() {
     const navigate = useNavigate();
+    const location = useLocation();
+    const { user, isAuthenticated, refetchUser } = useAuth();
     const [showPassword, setShowPassword] = useState(false);
+
+    const from = (location.state as { from?: { pathname: string } })?.from?.pathname;
+
+    useEffect(() => {
+        if (isAuthenticated && user) {
+            const isValidFrom = from && isPathAllowedForRoles(from, user);
+            const destination = isValidFrom ? from : getRoleBasedPath(user);
+            navigate(destination, { replace: true });
+        }
+    }, [isAuthenticated, user, navigate, from]);
 
     const handleClickShowPassword = () => setShowPassword((show) => !show);
 
-    const blockInjectionRegex = new RegExp("^[^<>/\\\\\"'%]+$");
-
-    const validationSchema = Yup.object({
-        email: Yup.string()
-            .email('Invalid email address')
-            .required('Email is required'),
-        password: Yup.string()
-            .min(8, 'Password must be at least 8 characters')
-            .matches(blockInjectionRegex, 'Password contains invalid characters')
-            .required('Password is required'),
-    });
-
     const formik = useFormik({
         initialValues: { email: '', password: '' },
-        validationSchema: validationSchema,
-        onSubmit: async (values, { setSubmitting, setFieldError, setStatus }) => {
+        validationSchema,
+        onSubmit: async (values, { setFieldError, setStatus }) => {
             setStatus(null);
             const normalizedEmail = values.email.toLowerCase().trim();
 
             try {
-                // 1. Initialize Sanctum CSRF Cookie
-                await getPublicAuth().getSanctumCsrfCookie();
-
-                // 2. Submit credentials to Sanctum session endpoint
-                const response = await getPublicAuth().postAuthLogin({
+                await getAuth().getSanctumCsrfCookie();
+                const loginResponse = await getAuth().postAuthLogin({
                     email: normalizedEmail,
                     password: values.password,
                 });
 
-                // 3. Extract user roles array from API response
-                const user = response?.user;
-                const roles = user?.roles ?? [];
+                const freshUser = await refetchUser(loginResponse.user?.roles);
 
-                // 4. Check for roles using Array.includes()
-                const isAdmin = Array.isArray(roles) && roles.includes('admin');
-                const isLecturer = Array.isArray(roles) && roles.includes('lecturer');
-                const isStudent = Array.isArray(roles) && roles.includes('student');
-
-                if (isAdmin) {
-                    navigate('/admin/dashboard');
-                } else if (isLecturer) {
-                    navigate('/lecturer/dashboard');
-                } else if (isStudent) {
-                    navigate('/student/dashboard');
-                } else {
-                    navigate('/dashboard');
+                if (!freshUser) {
+                    setStatus('Your session could not be verified. Please try again.');
+                    return;
                 }
+
+                const roles = getUserRoles(freshUser);
+                const isValidFrom = from && isPathAllowedForRoles(from, freshUser);
+                const destination = isValidFrom ? from : getRoleBasedPath(freshUser);
+
+                if (roles.length === 0) {
+                    setStatus('This account does not have access to a portal. Please contact an administrator.');
+                    return;
+                }
+
+                navigate(destination, { replace: true });
             } catch (error: unknown) {
                 if (Axios.isAxiosError(error)) {
                     const axiosError = error as AxiosError<ValidationErrorResponse>;
@@ -99,8 +106,6 @@ export default function LoginPage() {
                 } else {
                     setStatus('An unexpected error occurred. Please try again.');
                 }
-            } finally {
-                setSubmitting(false);
             }
         },
     });
@@ -114,18 +119,13 @@ export default function LoginPage() {
                 alignItems: 'center',
                 minHeight: '75vh',
                 width: '100%',
-                py: 4
+                py: 4,
             }}
         >
             <Container maxWidth="xs">
                 <Paper
                     variant="outlined"
-                    sx={{
-                        p: 4,
-                        borderRadius: 3,
-                        borderColor: '#e5e7eb',
-                        backgroundColor: 'background.paper'
-                    }}
+                    sx={{ p: 4, borderRadius: 3, borderColor: '#e5e7eb', backgroundColor: 'background.paper' }}
                 >
                     <Typography variant="h5" sx={{ mb: 3, fontWeight: 700, textAlign: 'center', color: 'text.primary' }}>
                         Login
@@ -138,7 +138,6 @@ export default function LoginPage() {
                     )}
 
                     <form onSubmit={formik.handleSubmit}>
-                        {/* Email Input */}
                         <TextField
                             fullWidth
                             id="email"
@@ -152,7 +151,6 @@ export default function LoginPage() {
                             sx={{ mb: 2 }}
                         />
 
-                        {/* Password Input */}
                         <TextField
                             fullWidth
                             id="password"
@@ -179,11 +177,10 @@ export default function LoginPage() {
                                             </IconButton>
                                         </InputAdornment>
                                     ),
-                                }
+                                },
                             }}
                         />
 
-                        {/* Sign In Button */}
                         <Button
                             color="primary"
                             variant="contained"

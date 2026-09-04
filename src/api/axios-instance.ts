@@ -1,29 +1,57 @@
 import Axios, { type AxiosRequestConfig, type AxiosError } from 'axios';
 
-// Declare process safely to avoid requiring @types/node
 declare const process: { env: Record<string, string | undefined> } | undefined;
 
-const getBaseUrl = (): string => {
-    // Vite support
-    if (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_URL) {
-        return import.meta.env.VITE_API_URL as string;
-    }
-    // Next.js / CRA support
-    if (typeof process !== 'undefined' && process?.env?.NEXT_PUBLIC_API_URL) {
-        return process.env.NEXT_PUBLIC_API_URL;
-    }
-    return 'http://localhost:8000/api/v1';
+/**
+ * Gets the root origin URL strictly from environment variables (Vite or Node process env).
+ */
+export const getRootUrl = (): string => {
+    const url =
+        (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_BASE_URL) ||
+        (typeof process !== 'undefined' && (process.env?.VITE_API_BASE_URL || process.env?.BASE_URL)) ||
+        '';
+
+    // Strip trailing /api/v1 or trailing slash if present to isolate root host
+    return url.replace(/\/api\/v1\/?$/, '').replace(/\/$/, '');
+};
+
+export const getApiBaseUrl = (): string => {
+    const root = getRootUrl();
+    return root ? `${root}/api/v1` : '/api/v1';
 };
 
 export const AXIOS_INSTANCE = Axios.create({
-    baseURL: getBaseUrl(),
-    withCredentials: true, // Required for HttpOnly session cookies
+    baseURL: getApiBaseUrl(),
+    withCredentials: true,  // Required for HttpOnly session cookies
     withXSRFToken: true,   // Automatically sends X-XSRF-TOKEN header from XSRF-TOKEN cookie
     headers: {
         'Accept': 'application/json',
-        'Content-Type': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest', // Forces Laravel to return JSON on errors
     },
 });
+
+const ROOT_AXIOS_INSTANCE = Axios.create({
+    baseURL: getRootUrl(),
+    withCredentials: true,
+    withXSRFToken: true,
+    headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+});
+
+// Response Interceptor: Route user to login if session expires (401/419)
+AXIOS_INSTANCE.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        const status = error.response?.status;
+
+        if (status === 401 || status === 419) {
+            if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+                window.location.href = '/login';
+            }
+        }
+
+        return Promise.reject(error);
+    }
+);
 
 // Custom instance function expected by Orval
 export const customInstance = <T>(
@@ -32,13 +60,13 @@ export const customInstance = <T>(
 ): Promise<T> => {
     const source = Axios.CancelToken.source();
 
-    const promise = AXIOS_INSTANCE({
+    const instance = config.url === '/sanctum/csrf-cookie' ? ROOT_AXIOS_INSTANCE : AXIOS_INSTANCE;
+    const promise = instance({
         ...config,
         ...options,
         cancelToken: source.token,
     }).then(({ data }) => data);
 
-    // Cast the promise type cleanly to attach cancel without using @ts-ignore
     const cancellablePromise = promise as Promise<T> & { cancel: () => void };
     cancellablePromise.cancel = () => {
         source.cancel('Query was cancelled');
@@ -47,6 +75,4 @@ export const customInstance = <T>(
     return cancellablePromise;
 };
 
-// Exported for Orval error typing compatibility
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export type ErrorType<E = unknown> = AxiosError<E>;

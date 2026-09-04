@@ -106,7 +106,7 @@ export default function PublicLayout() {
                                 </Button>
                             ))}
 
-                            {/* Portal Sign In - Desktop Only */}
+                            {/* Login - Desktop Only */}
                             <Button
                                 component={RouterLink}
                                 to="/login"
@@ -123,7 +123,7 @@ export default function PublicLayout() {
                                     whiteSpace: 'nowrap'
                                 }}
                             >
-                                Portal Sign In
+                                Login
                             </Button>
                         </Box>
 
@@ -186,7 +186,7 @@ export default function PublicLayout() {
                                         }
                                     }}
                                 >
-                                    <Typography align="center" sx={{ width: '100%' }}>Portal Sign In</Typography>
+                                    <Typography align="center" sx={{ width: '100%' }}>Login</Typography>
                                 </MenuItem>
                             </Menu>
                         </Box>

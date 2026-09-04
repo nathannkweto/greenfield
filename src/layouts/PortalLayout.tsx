@@ -1,20 +1,29 @@
-import { useContext } from 'react';
+import { useContext, useState } from 'react';
+import { client as apolloClient } from '../apolloClient';
 import { Outlet, Link as RouterLink, useLocation, useNavigate } from 'react-router-dom';
 import {
     AppBar, Toolbar, Typography, Box, Drawer, List, ListItem,
     ListItemButton, ListItemIcon, ListItemText, BottomNavigation,
-    BottomNavigationAction, Paper, useMediaQuery, useTheme, Button, IconButton
+    BottomNavigationAction, Paper, useMediaQuery, useTheme, Button, IconButton,
+    CircularProgress
 } from '@mui/material';
 import LogoutIcon from '@mui/icons-material/Logout';
 import DarkModeIcon from '@mui/icons-material/DarkMode';
 import LightModeIcon from '@mui/icons-material/LightMode';
 import type { NavItem } from '../config/navItems';
 
-// Import your college info data
+// Import college info data
 import { COLLEGE_INFO } from '../data/collegeInfo';
 
-// Import the context we just created in your root file
+// Import color mode context
 import { ColorModeContext } from '../context/ColorModeContext';
+
+// Import generated Orval API helper
+import { getAuth } from '../api/generated';
+
+// Import Notification Bell Component
+import { NotificationBell } from '../components/NotificationBell';
+import { useAuth } from '../context/AuthContext';
 
 const DRAWER_WIDTH = 240;
 
@@ -22,17 +31,34 @@ interface PortalLayoutProps {
     navItems: NavItem[];
 }
 
+// Instantiate Orval auth methods
+const { getSanctumCsrfCookie, postAuthLogout } = getAuth();
+
 export default function PortalLayout({ navItems }: PortalLayoutProps) {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
     const location = useLocation();
     const navigate = useNavigate();
+    const { clearSessionRoles } = useAuth();
 
-    // Consume the context
+    const [isLoggingOut, setIsLoggingOut] = useState(false);
+
+    // Consume color mode context
     const { toggleColorMode } = useContext(ColorModeContext);
 
-    const handleLogout = () => {
-        navigate('/');
+    const handleLogout = async () => {
+        setIsLoggingOut(true);
+        try {
+            await getSanctumCsrfCookie();
+            await postAuthLogout();
+        } catch (error) {
+            console.error('Logout request failed:', error);
+        } finally {
+            clearSessionRoles();
+            await apolloClient.resetStore();
+            setIsLoggingOut(false);
+            navigate('/login', { replace: true, state: {} });
+        }
     };
 
     const TopBar = (
@@ -44,41 +70,46 @@ export default function PortalLayout({ navItems }: PortalLayoutProps) {
                 zIndex: theme.zIndex.drawer + 1,
                 borderBottom: '1px solid',
                 borderColor: 'divider',
-                width: '100%',         // Enforce boundary
-                maxWidth: '100vw',     // Enforce boundary
+                width: '100%',
+                maxWidth: '100vw',
             }}>
             <Toolbar>
-                {/* Replaced SchoolIcon with your dynamic college logo image */}
                 <Box
                     component="img"
                     src={COLLEGE_INFO.logo}
                     alt={`${COLLEGE_INFO.name} logo`}
                     sx={{
-                        height: { xs: 28, md: 32 }, // Fits cleanly inside standard toolbars
+                        height: { xs: 28, md: 32 },
                         width: 'auto',
                         mr: 1.5,
                         display: 'flex'
                     }}
                 />
 
-                {/* Made the portal title partially dynamic using your data config */}
                 <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1, fontWeight: 600 }}>
                     {COLLEGE_INFO.name} Portal
                 </Typography>
 
-                {/* Theme Toggle & Logout Container */}
+                {/* Notifications, Theme Toggle & Logout Container */}
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <NotificationBell />
+
                     <IconButton onClick={toggleColorMode} color="inherit">
                         {theme.palette.mode === 'dark' ? <LightModeIcon /> : <DarkModeIcon />}
                     </IconButton>
 
                     {!isMobile ? (
-                        <Button color="error" startIcon={<LogoutIcon />} onClick={handleLogout}>
+                        <Button
+                            color="error"
+                            startIcon={isLoggingOut ? <CircularProgress size={18} color="inherit" /> : <LogoutIcon />}
+                            onClick={handleLogout}
+                            disabled={isLoggingOut}
+                        >
                             Logout
                         </Button>
                     ) : (
-                        <IconButton color="error" onClick={handleLogout}>
-                            <LogoutIcon />
+                        <IconButton color="error" onClick={handleLogout} disabled={isLoggingOut}>
+                            {isLoggingOut ? <CircularProgress size={20} color="inherit" /> : <LogoutIcon />}
                         </IconButton>
                     )}
                 </Box>
@@ -92,9 +123,9 @@ export default function PortalLayout({ navItems }: PortalLayoutProps) {
                 display: 'flex',
                 minHeight: '100vh',
                 backgroundColor: 'background.default',
-                width: '100%',        // Strict width
-                maxWidth: '100vw',    // Prevent body stretch
-                overflowX: 'hidden'   // Kill rogue pixels
+                width: '100%',
+                maxWidth: '100vw',
+                overflowX: 'hidden'
             }}
         >
             {TopBar}
@@ -152,7 +183,6 @@ export default function PortalLayout({ navItems }: PortalLayoutProps) {
                     p: { xs: 1.5, sm: 3 },
                     pb: isMobile ? 10 : 3,
                     minWidth: 0,
-                    // FIX: Exactly 100% on mobile, exactly remaining space on desktop
                     width: isMobile ? '100%' : `calc(100% - ${DRAWER_WIDTH}px)`,
                     boxSizing: 'border-box',
                     overflowX: 'hidden'
@@ -160,7 +190,6 @@ export default function PortalLayout({ navItems }: PortalLayoutProps) {
             >
                 <Toolbar />
                 <Outlet />
-                <Toolbar />
             </Box>
 
             {/* MOBILE BOTTOM NAVIGATION */}
