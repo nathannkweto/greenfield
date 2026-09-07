@@ -4,7 +4,6 @@ import {
     Alert,
     Box,
     Button,
-    Chip,
     CircularProgress,
     Container,
     Divider,
@@ -17,7 +16,6 @@ import {
     Typography
 } from '@mui/material';
 import PublishIcon from '@mui/icons-material/Publish';
-import CheckCircleOutlinedIcon from '@mui/icons-material/CheckCircleOutlined';
 import { getResults } from '../../../api/generated';
 import { GET_RESULTS_PAGE } from './queries';
 
@@ -92,7 +90,7 @@ export default function ResultsPage() {
     );
 
     return (
-        <Box sx={{ bgcolor: 'background.default', minHeight: '70vh', py: 4 }}>
+        <Box sx={{ backgroundColor: 'background.default', minHeight: '70vh', py: 4 }}>
             <Container maxWidth="lg" sx={{ display: 'grid', gap: 3 }}>
                 <Box>
                     <Typography variant="h4" fontWeight={800}>
@@ -137,23 +135,14 @@ export default function ResultsPage() {
                                     {index > 0 && <Divider />}
                                     <ListItem
                                         secondaryAction={
-                                            item.isPublished ? (
-                                                <Chip
-                                                    icon={<CheckCircleOutlinedIcon />}
-                                                    label="Published"
-                                                    color="success"
-                                                    variant="outlined"
-                                                />
-                                            ) : (
-                                                <Button
-                                                    startIcon={<PublishIcon />}
-                                                    variant="contained"
-                                                    onClick={() => publish(item.id)}
-                                                    disabled={publishing === item.id}
-                                                >
-                                                    {publishing === item.id ? 'Publishing…' : 'Publish'}
-                                                </Button>
-                                            )
+                                            <Button
+                                                startIcon={<PublishIcon />}
+                                                variant="contained"
+                                                onClick={() => publish(item.id)}
+                                                disabled={publishing === item.id}
+                                            >
+                                                {publishing === item.id ? 'Publishing…' : 'Publish'}
+                                            </Button>
                                         }
                                     >
                                         <ListItemText

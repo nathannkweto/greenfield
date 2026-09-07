@@ -26,6 +26,15 @@ interface TargetOptionsData {
     };
 }
 
+interface AnnouncementNode {
+    id: string;
+    title: string;
+    content: string;
+    type: string;
+    targetLevel: string;
+    targetId?: string | null;
+}
+
 export default function CreateAnnouncementPage() {
     const navigate = useNavigate();
     const { announcementId } = useParams<{ announcementId: string }>();
@@ -54,8 +63,14 @@ export default function CreateAnnouncementPage() {
     const programs = useMemo(() => targetData?.programs?.edges?.map(e => e.node) || [], [targetData]);
 
     useEffect(() => {
-        const existing = existingData?.announcements.edges.find((edge) => edge.node.id === announcementId)?.node;
-        if (!existing) return;
+        const rawNode = existingData?.announcements.edges.find((edge) => {
+            const node = edge.node as unknown as AnnouncementNode;
+            return node.id === announcementId;
+        })?.node;
+
+        if (!rawNode) return;
+        const existing = rawNode as unknown as AnnouncementNode;
+
         queueMicrotask(() => {
             setTitle(existing.title);
             setContent(existing.content);
@@ -76,8 +91,6 @@ export default function CreateAnnouncementPage() {
     };
 
     // 2. Map UI Values to API Payload Enums
-    // Replace mapping functions in CreateAnnouncementPage.tsx
-
     const mapTypeToApi = (uiType: AnnouncementTypeUI): string => {
         switch (uiType) {
             case 'General': return 'General';
@@ -98,7 +111,7 @@ export default function CreateAnnouncementPage() {
     };
 
     // 3. Submit Handler
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setErrorMsg(null);
 
@@ -126,7 +139,7 @@ export default function CreateAnnouncementPage() {
             formData.append('type', mapTypeToApi(type));
             formData.append('target_level', mapLevelToApi(targetLevel));
             formData.append('target_name', targetName);
-            formData.append('author', 'Academic Office'); // Replace with logged-in user name/role if dynamic
+            formData.append('author', 'Academic Office');
 
             if (targetId) {
                 formData.append('target_public_id', targetId);

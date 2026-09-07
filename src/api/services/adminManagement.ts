@@ -6,6 +6,8 @@ import {
     type CourseRequest,
     type LecturerRequest,
     type ProgramRequest,
+    type ProgramRequestDurationUnit,
+    type ProgramRequestLevel,
     type SchoolRequest,
 } from '../generated';
 
@@ -40,22 +42,47 @@ export async function saveManagementEntity(
     if (mode === 'edit' && !entityId) throw new Error('The selected record has no identifier.');
 
     if (entity === 'school') {
-        const payload: SchoolRequest = { name: required(values.name, 'School name'), description: values.description || undefined, dean_user_public_id: values.deanUserPublicId || null };
+        const payload: SchoolRequest = {
+            name: required(values.name, 'School name'),
+            description: values.description || undefined,
+            dean_user_public_id: values.deanUserPublicId || null,
+        };
         const api = getSchools();
         return mode === 'create' ? api.postSchoolsCreate(payload) : api.postSchoolsPublicIdEdit(entityId!, payload);
     }
+
     if (entity === 'program') {
-        const payload: ProgramRequest = { school_public_id: required(schoolId, 'School'), code: required(values.code, 'Program code'), title: required(values.title, 'Program title'), qualification: required(values.qualification, 'Qualification'), duration_months: Number(values.durationMonths) || 0 };
+        const payload: ProgramRequest = {
+            school_public_id: required(schoolId, 'School'),
+            code: required(values.code, 'Program code'),
+            title: required(values.title, 'Program title'),
+            level: (values.qualification as ProgramRequestLevel) || ('UNDERGRADUATE' as ProgramRequestLevel),
+            duration_value: Math.max(1, Number(values.durationMonths) || 1),
+            duration_unit: 'MONTHS' as ProgramRequestDurationUnit,
+            short_description: values.description || null,
+        };
         const api = getPrograms();
         return mode === 'create' ? api.postProgramsCreate(payload) : api.postProgramsPublicIdEdit(entityId!, payload);
     }
+
     if (entity === 'course') {
-        const payload: CourseRequest = { school_public_id: required(schoolId, 'School'), code: required(values.code, 'Course code'), title: required(values.title, 'Course title'), description: values.description || undefined, credits: Number(values.credits) || 0 };
+        const payload: CourseRequest = {
+            school_public_id: required(schoolId, 'School'),
+            code: required(values.code, 'Course code'),
+            title: required(values.title, 'Course title'),
+            description: values.description || '',
+            credits: Number(values.credits) || 0,
+        };
         const api = getCourses();
         return mode === 'create' ? api.postCoursesCreate(payload) : api.postCoursesPublicIdEdit(entityId!, payload);
     }
 
-    const payload: LecturerRequest = { user_public_id: required(values.userPublicId, 'Lecturer user ID'), staff_number: required(values.staffNumber, 'Staff number'), department: required(values.department, 'Department') };
+    const payload: LecturerRequest = {
+        school_public_id: required(schoolId, 'School'),
+        email: required(values.userPublicId, 'Lecturer email'),
+        first_name: values.name || required(values.staffNumber, 'Staff number'),
+        last_name: values.department || 'Lecturer',
+    };
     const api = getLecturers();
     return mode === 'create' ? api.postLecturersCreate(payload) : api.postLecturersPublicIdEdit(entityId!, payload);
 }

@@ -24,7 +24,7 @@ export default function NotificationDetailPage() {
                     Notification Details
                 </Typography>
 
-                <Typography variant="body1" color="text.secondary" paragraph>
+                <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
                     You are viewing full details for event notification #{id}.
                 </Typography>
 

@@ -120,7 +120,7 @@ export default function LecturerCourseDetail() {
             await api.postCurriculaPublicIdAssessmentsCreate(curriculum.id, {
                 title: assessmentForm.title,
                 description: assessmentForm.description || null,
-                type: assessmentForm.type,
+                type: assessmentForm.type as Parameters<typeof api.postCurriculaPublicIdAssessmentsCreate>[1]['type'],
                 term: assessmentForm.term ? Number(assessmentForm.term) : null,
                 weight_percentage: Number(assessmentForm.weight),
                 max_score: Number(assessmentForm.maxScore),
@@ -188,7 +188,7 @@ export default function LecturerCourseDetail() {
     }
 
     return (
-        <Box sx={{ bgcolor: 'background.default', minHeight: '80vh', py: 4 }}>
+        <Box sx={{ backgroundColor: 'background.default', minHeight: '80vh', py: 4 }}>
             <Container maxWidth="xl" sx={{ display: 'grid', gap: 3 }}>
                 <Button
                     startIcon={<ArrowBackIcon />}
@@ -363,7 +363,7 @@ export default function LecturerCourseDetail() {
                             type="datetime-local"
                             value={assessmentForm.dueDate}
                             onChange={(e) => setAssessmentForm({ ...assessmentForm, dueDate: e.target.value })}
-                            InputLabelProps={{ shrink: true }}
+                            slotProps={{ inputLabel: { shrink: true } }}
                             fullWidth
                         />
                     </DialogContent>

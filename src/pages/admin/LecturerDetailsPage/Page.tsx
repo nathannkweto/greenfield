@@ -27,7 +27,6 @@ import LocationOnIcon from '@mui/icons-material/LocationOn';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
 import ContactPhoneIcon from '@mui/icons-material/ContactPhone';
-import UpdateIcon from '@mui/icons-material/Update';
 
 import { PageHeader } from '../../../components/PageHeader';
 import { LecturerModal } from '../SchoolDetailsPage/components/LecturerModal';

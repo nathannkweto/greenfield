@@ -52,12 +52,12 @@ export default function LecturerDashboard() {
     const navigate = useNavigate();
     const { data, loading, error } = useQuery<LecturerPortalData>(GET_LECTURER_PORTAL);
 
-    const primaryLecturer = data?.me?.lecturers[0];
+    const primaryLecturer = data?.me?.lecturers?.[0];
     const lecturerName = primaryLecturer ? `${primaryLecturer.firstName} ${primaryLecturer.lastName}` : '';
-    const curricula = data?.me?.lecturers.flatMap((lecturer) => lecturer.curricula) ?? [];
+    const curricula = data?.me?.lecturers?.flatMap((lecturer) => lecturer.curricula) ?? [];
 
     return (
-        <Box sx={{ bgcolor: 'background.default', minHeight: '100vh', py: { xs: 3, md: 5 } }}>
+        <Box sx={{ backgroundColor: 'background.default', minHeight: '100vh', py: { xs: 3, md: 5 } }}>
             <Container maxWidth="lg">
                 {/* Header */}
                 <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
@@ -100,7 +100,7 @@ export default function LecturerDashboard() {
 
                 {/* Empty State */}
                 {!loading && !error && curricula.length === 0 && (
-                    <Box sx={{ py: 8, textAlign: 'center', bgcolor: 'action.hover', borderRadius: 3, border: '1px dashed', borderColor: 'divider' }}>
+                    <Box sx={{ py: 8, textAlign: 'center', backgroundColor: 'action.hover', borderRadius: 3, border: '1px dashed', borderColor: 'divider' }}>
                         <SchoolIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 1 }} />
                         <Typography variant="h6" color="text.secondary" sx={{ fontWeight: 600 }}>
                             No active courses found
@@ -135,7 +135,7 @@ export default function LecturerDashboard() {
                                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2.5, minWidth: 0 }}>
                                             <Avatar
                                                 sx={{
-                                                    bgcolor: 'action.hover',
+                                                    backgroundColor: 'action.hover',
                                                     color: 'primary.main',
                                                     fontWeight: 700,
                                                     fontSize: '0.85rem',
@@ -162,14 +162,14 @@ export default function LecturerDashboard() {
                                                 >
                                                     {item.course.code}: {item.course.title}
                                                 </Typography>
-                                                <Stack direction="row" spacing={1.5} alignItems="center">
+                                                <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
                                                     <Chip
                                                         label={`${item.program.code} • Year ${item.year}`}
                                                         size="small"
                                                         variant="filled"
                                                         sx={{ fontSize: '0.75rem', fontWeight: 600, height: 22 }}
                                                     />
-                                                    <Stack direction="row" spacing={0.5} alignItems="center">
+                                                    <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
                                                         <PeopleAltOutlinedIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
                                                         <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
                                                             {item.enrollments.length} Enrolled Student{item.enrollments.length === 1 ? '' : 's'}
