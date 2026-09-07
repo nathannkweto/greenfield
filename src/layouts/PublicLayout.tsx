@@ -49,12 +49,22 @@ export default function PublicLayout() {
     ];
 
     return (
-        <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', backgroundColor: 'background.default' }}>
-            <AppBar position="sticky" color="inherit" elevation={0} sx={{ borderBottom: 1, borderColor: 'divider' }}>
+        /* 1. Prevent the viewport from scrolling entirely */
+        <Box
+            sx={{
+                display: 'flex',
+                flexDirection: 'column',
+                height: '100vh',
+                overflow: 'hidden',
+                backgroundColor: 'background.default'
+            }}
+        >
+            {/* 2. TopBar stays pinned outside the scroll area */}
+            <AppBar position="static" color="inherit" elevation={0} sx={{ borderBottom: 1, borderColor: 'divider', zIndex: 1100 }}>
                 <Container maxWidth="xl">
                     <Toolbar disableGutters>
 
-                        {/* ================= LOGO & TITLE ================= */}
+                        {/* LOGO & TITLE */}
                         <Box sx={{ display: 'flex', alignItems: 'center' }}>
                             <Box
                                 component="img"
@@ -64,7 +74,7 @@ export default function PublicLayout() {
                                     height: { xs: 32, md: 36 },
                                     width: 'auto',
                                     mr: 1.5,
-                                    display: 'flex'
+                                    display: 'block'
                                 }}
                             />
                             <Typography
@@ -85,8 +95,8 @@ export default function PublicLayout() {
 
                         <Box sx={{ flexGrow: 1 }} />
 
-                        {/* ================= DESKTOP NAVIGATION ================= */}
-                        <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 1, mr: 1, alignItems: 'center' }}>
+                        {/* DESKTOP NAVIGATION */}
+                        <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 1, alignItems: 'center' }}>
                             {navItems.map((item) => (
                                 <Button
                                     key={item.label}
@@ -106,7 +116,6 @@ export default function PublicLayout() {
                                 </Button>
                             ))}
 
-                            {/* Login - Desktop Only */}
                             <Button
                                 component={RouterLink}
                                 to="/login"
@@ -114,7 +123,8 @@ export default function PublicLayout() {
                                 color="primary"
                                 disableElevation
                                 sx={{
-                                    ml: 2,
+                                    ml: 1,
+                                    mr: 1,
                                     borderRadius: 2,
                                     textTransform: 'none',
                                     px: 3,
@@ -127,12 +137,12 @@ export default function PublicLayout() {
                             </Button>
                         </Box>
 
-                        {/* ================= THEME TOGGLE ================= */}
-                        <IconButton onClick={toggleColorMode} color="inherit" sx={{ mr: { xs: 0.5, md: 0 } }}>
+                        {/* THEME TOGGLE */}
+                        <IconButton onClick={toggleColorMode} color="inherit" sx={{ ml: { xs: 0, md: 0.5 } }}>
                             {theme.palette.mode === 'dark' ? <LightModeIcon /> : <DarkModeIcon />}
                         </IconButton>
 
-                        {/* ================= MOBILE NAVIGATION ================= */}
+                        {/* MOBILE NAVIGATION */}
                         <Box sx={{ display: { xs: 'flex', md: 'none' } }}>
                             <IconButton
                                 size="large"
@@ -194,13 +204,21 @@ export default function PublicLayout() {
                 </Container>
             </AppBar>
 
-            {/* MAIN CONTENT AREA */}
-            <Box component="main" sx={{ flexGrow: 1 }}>
-                <Outlet />
+            {/* 3. ONLY this content area scrolls — scrollbar starts directly under AppBar */}
+            <Box
+                component="main"
+                sx={{
+                    flexGrow: 1,
+                    overflowY: 'auto',
+                    display: 'flex',
+                    flexDirection: 'column'
+                }}
+            >
+                <Box sx={{ flexGrow: 1 }}>
+                    <Outlet />
+                </Box>
+                <Footer />
             </Box>
-
-            {/* PROFESSIONAL DARK FOOTER */}
-            <Footer />
         </Box>
     );
 }

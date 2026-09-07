@@ -1,6 +1,12 @@
 import { gql } from '@apollo/client';
 export const ANNOUNCEMENT_FRAGMENT = gql`
- fragment AnnouncementFields on Announcement { id title content type targetLevel targetId targetName author authorUser { id } attachment { id fileName fileType fileSize filePath } createdAt updatedAt }
+ fragment AnnouncementFields on Announcement { id title content type targetLevel targetId targetName author authorUser { id } attachment { id
+          originalName
+          mimeType
+          size
+          url
+          collection
+          createdAt } createdAt updatedAt }
 `;
 export const GET_ANNOUNCEMENTS_LIST = gql`
  query GetAnnouncementsList($type: AnnouncementType, $targetLevel: TargetLevel, $first: Int!) { announcements(type: $type, targetLevel: $targetLevel, first: $first) { edges { node { ...AnnouncementFields } } pageInfo { hasNextPage endCursor } } }

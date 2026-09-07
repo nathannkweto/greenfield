@@ -1,3 +1,4 @@
+// src/graphql/queries/auth.ts
 import { gql } from '@apollo/client';
 
 export const GET_ME = gql`
@@ -5,6 +6,15 @@ export const GET_ME = gql`
     me {
       id
       email
+      phone
+      applicants {
+        id
+        firstName
+        middleNames
+        lastName
+        email
+        phone
+      }
       students {
         id
         status
@@ -13,9 +23,6 @@ export const GET_ME = gql`
         id
       }
       lecturers {
-        id
-      }
-      applicants {
         id
       }
     }

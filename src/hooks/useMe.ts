@@ -1,16 +1,11 @@
 // src/hooks/useMe.ts
 import { useQuery } from '@apollo/client/react';
 import { GET_ME } from '../graphql/queries/auth';
-
-export interface User {
-    id: string;
-    firstName: string;
-    email: string;
-}
+import type {AuthUser} from '../context/AuthContext';
 
 export function useMe() {
-    const { data, loading, error, refetch } = useQuery<{ me: User }>(GET_ME, {
-        fetchPolicy: 'cache-first', // Use cached profile immediately if available
+    const { data, loading, error, refetch } = useQuery<{ me: AuthUser }>(GET_ME, {
+        fetchPolicy: 'cache-first',
         errorPolicy: 'all',
     });
 

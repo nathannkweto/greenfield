@@ -15,7 +15,10 @@ import {
     CircularProgress,
     Stack,
     IconButton,
-    Chip
+    Chip,
+    ListSubheader,
+    ToggleButtonGroup,
+    ToggleButton
 } from '@mui/material';
 import {
     CloudUpload as UploadIcon,
@@ -27,9 +30,26 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { useQuery } from '@apollo/client/react';
 
-// Interfaces matching API Schema
+// Local GraphQL Queries
+import { GET_SCHOOLS_WITH_PROGRAMS } from '../Info/queries';
+
+// Generated Orval imports
+import { getStudents, getFiles } from '../../../api/generated';
+import type {
+    ApplicationRequest,
+    ApplicationRequestSex,
+    ApplicationRequestMaritalStatus,
+    ApplicationRequestIntake,
+    ApplicationRequestStudyMode
+} from '../../../api/generated';
+
+// Auth Context/Hook
+import { useAuth } from '../../../context/AuthContext';
+
 export interface ApplicationFormData {
+    user_public_id?: string;
     program_public_id: string;
     first_name: string;
     middle_names: string;
@@ -49,6 +69,8 @@ export interface ApplicationFormData {
     nrc_file_public_id: string | null;
     passport_file_public_id: string | null;
     certificate_file_public_id: string | null;
+    deposit_slip_file_public_id: string | null;
+    exemption_transcript_file_public_id: string | null;
 }
 
 interface UploadedFiles {
@@ -58,29 +80,64 @@ interface UploadedFiles {
     exemptionTranscript: { name: string; file_id: string } | null;
 }
 
+interface Program {
+    id: string;
+    title: string;
+    level: string;
+}
+
+interface School {
+    id: string;
+    name: string;
+    programs: Program[];
+}
+
+interface SchoolsWithProgramsData {
+    schools: {
+        edges: Array<{
+            node: School;
+        }>;
+    };
+}
+
 const STEPS = ['Personal & Contact Info', 'Program & Study Mode', 'Document Uploads'];
 
-// Mock Program Options (Replace with dynamic API data)
-const MOCK_PROGRAMS = [
-    { id: '9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d', name: 'Bachelor of Science in Computer Science' },
-    { id: '1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d', name: 'Bachelor of Business Administration' },
-    { id: '8f7e6d5c-4b3a-2f1e-0d9c-8b7a6f5e4d3c', name: 'Diploma in Registered Nursing' },
-];
+const STATIC_KEY_TO_FIELD_MAP: Partial<Record<keyof UploadedFiles, keyof ApplicationFormData>> = {
+    certificate: 'certificate_file_public_id',
+    depositSlip: 'deposit_slip_file_public_id',
+    exemptionTranscript: 'exemption_transcript_file_public_id',
+};
 
 export default function ApplicationPage() {
     const navigate = useNavigate();
+    const { user } = useAuth();
+    const applicant = user?.applicants?.[0];
+
+    // Check for existing student profile
+    const studentProfile = user?.students?.[0];
+    const hasStudentProfile = Boolean(studentProfile);
+
+    const { data: schoolsData, loading: loadingSchools, error: schoolsError } = useQuery<SchoolsWithProgramsData>(
+        GET_SCHOOLS_WITH_PROGRAMS,
+        { skip: hasStudentProfile } // Skip GraphQL query if student profile already exists
+    );
+
     const [activeStep, setActiveStep] = useState<number>(0);
     const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
     const [isUploading, setIsUploading] = useState<string | null>(null);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-    const [formData, setFormData] = useState<ApplicationFormData>({
+    // Dynamic Identity Selection State
+    const [identityType, setIdentityType] = useState<'nrc' | 'passport'>('nrc');
+
+    const [formData, setFormData] = useState<ApplicationFormData>(() => ({
+        user_public_id: user?.id || '',
         program_public_id: '',
-        first_name: '',
-        middle_names: '',
-        last_name: '',
-        email: '',
-        phone: '',
+        first_name: applicant?.firstName || '',
+        middle_names: applicant?.middleNames || '',
+        last_name: applicant?.lastName || '',
+        email: applicant?.email || user?.email || '',
+        phone: applicant?.phone || user?.phone || '',
         dob: '',
         address: '',
         emergency_contact: '',
@@ -94,7 +151,25 @@ export default function ApplicationPage() {
         nrc_file_public_id: null,
         passport_file_public_id: null,
         certificate_file_public_id: null,
-    });
+        deposit_slip_file_public_id: null,
+        exemption_transcript_file_public_id: null,
+    }));
+
+    // Adjust state during render when user context resolves to avoid effect cascading renders
+    const [prevUser, setPrevUser] = useState(user);
+    if (user !== prevUser) {
+        setPrevUser(user);
+        const currentApplicant = user?.applicants?.[0];
+        setFormData((prev) => ({
+            ...prev,
+            user_public_id: prev.user_public_id || user?.id || '',
+            first_name: prev.first_name || currentApplicant?.firstName || '',
+            middle_names: prev.middle_names || currentApplicant?.middleNames || '',
+            last_name: prev.last_name || currentApplicant?.lastName || '',
+            email: prev.email || currentApplicant?.email || user?.email || '',
+            phone: prev.phone || currentApplicant?.phone || user?.phone || '',
+        }));
+    }
 
     const [files, setFiles] = useState<UploadedFiles>({
         certificate: null,
@@ -103,29 +178,94 @@ export default function ApplicationPage() {
         exemptionTranscript: null,
     });
 
+    // Display notice if user already has an active profile
+    if (hasStudentProfile) {
+        return (
+            <Container maxWidth="sm" sx={{ py: 8 }}>
+                <Paper variant="outlined" sx={{ p: 4, textAlign: 'center', borderRadius: 3 }}>
+                    <Alert severity="info" sx={{ mb: 3, justifyContent: 'center' }}>
+                        An application profile already exists for your account.
+                    </Alert>
+                    <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+                        You have already submitted an application. You can view your current status and progress directly on your dashboard.
+                    </Typography>
+                    <Button
+                        variant="contained"
+                        onClick={() => navigate('/applicant/dashboard')}
+                    >
+                        Go to Dashboard
+                    </Button>
+                </Paper>
+            </Container>
+        );
+    }
+
+    // Handle dynamic Identity Type changes and clear opposite payload state
+    const handleIdentityTypeChange = (
+        _: React.MouseEvent<HTMLElement>,
+        newType: 'nrc' | 'passport' | null
+    ) => {
+        if (!newType) return;
+        setIdentityType(newType);
+
+        // Automated Payload Cleanup
+        setFormData((prev) => ({
+            ...prev,
+            nrc_number: newType === 'nrc' ? prev.nrc_number : '',
+            passport_number: newType === 'passport' ? prev.passport_number : '',
+            nrc_file_public_id: newType === 'nrc' ? prev.nrc_file_public_id : null,
+            passport_file_public_id: newType === 'passport' ? prev.passport_file_public_id : null,
+        }));
+    };
+
     const handleTextChange = (field: keyof ApplicationFormData) => (e: ChangeEvent<HTMLInputElement>) => {
         setFormData((prev) => ({ ...prev, [field]: e.target.value }));
     };
 
-    // Simulated Document Upload Handler — connect to your file upload endpoint
     const handleFileUpload = async (fileKey: keyof UploadedFiles, file: File) => {
         setIsUploading(fileKey);
+        setErrorMessage(null);
+
+        const collectionMap: Record<keyof UploadedFiles, string> = {
+            certificate: 'certificate_document',
+            nrcOrPassport: 'identity_document',
+            depositSlip: 'payment_receipt',
+            exemptionTranscript: 'transcript_document',
+        };
+
         try {
-            // Simulated upload delay & UUID generation (Replace with actual POST /documents upload call)
-            const simulatedUuid = crypto.randomUUID();
+            const { postFilesUpload } = getFiles();
+
+            const response = await postFilesUpload({
+                file,
+                collection: collectionMap[fileKey],
+            });
+
+            const uploadedId = response?.data?.public_id;
 
             setFiles((prev) => ({
                 ...prev,
-                [fileKey]: { name: file.name, file_id: simulatedUuid },
+                [fileKey]: { name: file.name, file_id: uploadedId },
             }));
 
-            if (fileKey === 'certificate') {
-                setFormData((prev) => ({ ...prev, certificate_file_public_id: simulatedUuid }));
-            } else if (fileKey === 'nrcOrPassport') {
-                setFormData((prev) => ({ ...prev, nrc_file_public_id: simulatedUuid }));
+            // Resolve dynamic identity mapping based on active identity selection
+            const targetField: keyof ApplicationFormData =
+                fileKey === 'nrcOrPassport'
+                    ? identityType === 'nrc'
+                        ? 'nrc_file_public_id'
+                        : 'passport_file_public_id'
+                    : (STATIC_KEY_TO_FIELD_MAP[fileKey] as keyof ApplicationFormData);
+
+            setFormData((prev) => ({
+                ...prev,
+                [targetField]: uploadedId,
+            }));
+        } catch (err: unknown) {
+            if (axios.isAxiosError(err)) {
+                setErrorMessage(err.response?.data?.message || `Failed to upload ${file.name}.`);
+            } else {
+                setErrorMessage(`Failed to upload ${file.name}.`);
             }
-        } catch {
-            setErrorMessage(`Failed to upload ${file.name}. Please try again.`);
         } finally {
             setIsUploading(null);
         }
@@ -133,20 +273,26 @@ export default function ApplicationPage() {
 
     const handleRemoveFile = (fileKey: keyof UploadedFiles) => {
         setFiles((prev) => ({ ...prev, [fileKey]: null }));
-        if (fileKey === 'certificate') {
-            setFormData((prev) => ({ ...prev, certificate_file_public_id: null }));
-        } else if (fileKey === 'nrcOrPassport') {
-            setFormData((prev) => ({ ...prev, nrc_file_public_id: null }));
-        }
+
+        const targetField: keyof ApplicationFormData =
+            fileKey === 'nrcOrPassport'
+                ? identityType === 'nrc'
+                    ? 'nrc_file_public_id'
+                    : 'passport_file_public_id'
+                : (STATIC_KEY_TO_FIELD_MAP[fileKey] as keyof ApplicationFormData);
+
+        setFormData((prev) => ({ ...prev, [targetField]: null }));
     };
 
+    // Step 1 Validation including Identity Document requirement
     const isStep1Valid = Boolean(
-        formData.first_name &&
-        formData.last_name &&
-        formData.email &&
-        formData.phone &&
+        formData.first_name?.trim() &&
+        formData.last_name?.trim() &&
+        formData.email?.trim() &&
+        formData.phone?.trim() &&
         formData.sex &&
-        formData.marital_status
+        formData.marital_status &&
+        (identityType === 'nrc' ? formData.nrc_number?.trim() : formData.passport_number?.trim())
     );
 
     const isStep2Valid = Boolean(
@@ -167,7 +313,34 @@ export default function ApplicationPage() {
         setErrorMessage(null);
 
         try {
-            await axios.post('/api/apply', formData);
+            const { postApply } = getStudents();
+
+            const payload: ApplicationRequest = {
+                user_public_id: user?.id || formData.user_public_id || '',
+                program_public_id: formData.program_public_id,
+                first_name: formData.first_name,
+                middle_names: formData.middle_names || null,
+                last_name: formData.last_name,
+                email: formData.email,
+                phone: formData.phone,
+                dob: formData.dob || null,
+                address: formData.address || null,
+                emergency_contact: formData.emergency_contact || null,
+                sex: formData.sex as ApplicationRequestSex,
+                marital_status: formData.marital_status as ApplicationRequestMaritalStatus,
+                nationality: formData.nationality,
+                nrc_number: identityType === 'nrc' ? formData.nrc_number || null : null,
+                passport_number: identityType === 'passport' ? formData.passport_number || null : null,
+                intake: formData.intake as ApplicationRequestIntake,
+                study_mode: formData.study_mode as ApplicationRequestStudyMode,
+                nrc_file_public_id: identityType === 'nrc' ? formData.nrc_file_public_id : null,
+                passport_file_public_id: identityType === 'passport' ? formData.passport_file_public_id : null,
+                certificate_file_public_id: formData.certificate_file_public_id,
+                deposit_slip_file_public_id: formData.deposit_slip_file_public_id,
+                exemption_transcript_file_public_id: formData.exemption_transcript_file_public_id,
+            };
+
+            await postApply(payload);
             navigate('/applicant/dashboard');
         } catch (err: unknown) {
             if (axios.isAxiosError(err)) {
@@ -220,6 +393,7 @@ export default function ApplicationPage() {
                                     value={formData.first_name}
                                     onChange={handleTextChange('first_name')}
                                     required
+                                    disabled={Boolean(applicant?.firstName)}
                                 />
                             </Grid>
                             <Grid size={{ xs: 12, sm: 4 }}>
@@ -228,6 +402,7 @@ export default function ApplicationPage() {
                                     label="Middle Names"
                                     value={formData.middle_names}
                                     onChange={handleTextChange('middle_names')}
+                                    disabled={Boolean(applicant?.middleNames)}
                                 />
                             </Grid>
                             <Grid size={{ xs: 12, sm: 4 }}>
@@ -237,6 +412,7 @@ export default function ApplicationPage() {
                                     value={formData.last_name}
                                     onChange={handleTextChange('last_name')}
                                     required
+                                    disabled={Boolean(applicant?.lastName)}
                                 />
                             </Grid>
 
@@ -248,6 +424,7 @@ export default function ApplicationPage() {
                                     value={formData.email}
                                     onChange={handleTextChange('email')}
                                     required
+                                    disabled={Boolean(applicant?.email || user?.email)}
                                 />
                             </Grid>
                             <Grid size={{ xs: 12, sm: 6 }}>
@@ -258,6 +435,7 @@ export default function ApplicationPage() {
                                     onChange={handleTextChange('phone')}
                                     placeholder="+260971234567"
                                     required
+                                    disabled={Boolean(applicant?.phone || user?.phone)}
                                 />
                             </Grid>
 
@@ -268,7 +446,7 @@ export default function ApplicationPage() {
                                     label="Date of Birth"
                                     value={formData.dob}
                                     onChange={handleTextChange('dob')}
-                                    SlotProps={{ inputLabel: { shrink: true } }}
+                                    slotProps={{ inputLabel: { shrink: true } }}
                                 />
                             </Grid>
                             <Grid size={{ xs: 12, sm: 4 }}>
@@ -308,23 +486,44 @@ export default function ApplicationPage() {
                                     onChange={handleTextChange('nationality')}
                                 />
                             </Grid>
+
+                            {/* DYNAMIC IDENTITY DOCUMENT SELECTOR */}
                             <Grid size={{ xs: 12, sm: 4 }}>
-                                <TextField
+                                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+                                    Identification Type *
+                                </Typography>
+                                <ToggleButtonGroup
+                                    value={identityType}
+                                    exclusive
+                                    onChange={handleIdentityTypeChange}
                                     fullWidth
-                                    label="NRC Number"
-                                    value={formData.nrc_number}
-                                    onChange={handleTextChange('nrc_number')}
-                                    placeholder="123456/11/1"
-                                />
+                                    size="small"
+                                >
+                                    <ToggleButton value="nrc">NRC</ToggleButton>
+                                    <ToggleButton value="passport">Passport</ToggleButton>
+                                </ToggleButtonGroup>
                             </Grid>
+
                             <Grid size={{ xs: 12, sm: 4 }}>
-                                <TextField
-                                    fullWidth
-                                    label="Passport Number"
-                                    value={formData.passport_number}
-                                    onChange={handleTextChange('passport_number')}
-                                    placeholder="Z1234567"
-                                />
+                                {identityType === 'nrc' ? (
+                                    <TextField
+                                        fullWidth
+                                        label="NRC Number"
+                                        value={formData.nrc_number}
+                                        onChange={handleTextChange('nrc_number')}
+                                        placeholder="123456/11/1"
+                                        required
+                                    />
+                                ) : (
+                                    <TextField
+                                        fullWidth
+                                        label="Passport Number"
+                                        value={formData.passport_number}
+                                        onChange={handleTextChange('passport_number')}
+                                        placeholder="Z1234567"
+                                        required
+                                    />
+                                )}
                             </Grid>
 
                             <Grid size={{ xs: 12 }}>
@@ -365,12 +564,31 @@ export default function ApplicationPage() {
                             value={formData.program_public_id}
                             onChange={handleTextChange('program_public_id')}
                             required
+                            disabled={loadingSchools}
+                            error={Boolean(schoolsError)}
+                            helperText={schoolsError ? 'Failed to load programs' : ''}
                         >
-                            {MOCK_PROGRAMS.map((prog) => (
-                                <MenuItem key={prog.id} value={prog.id}>
-                                    {prog.name}
+                            {loadingSchools ? (
+                                <MenuItem disabled value="">
+                                    <CircularProgress size={20} sx={{ mr: 1 }} /> Loading programs...
                                 </MenuItem>
-                            ))}
+                            ) : (
+                                (schoolsData?.schools?.edges || [])
+                                    .map((edge) => edge.node)
+                                    .flatMap((school) => [
+                                        <ListSubheader
+                                            key={`school-${school.id}`}
+                                            sx={{ fontWeight: 700, color: 'text.primary', bgcolor: 'background.paper' }}
+                                        >
+                                            {school.name}
+                                        </ListSubheader>,
+                                        ...school.programs.map((prog) => (
+                                            <MenuItem key={prog.id} value={prog.id} sx={{ pl: 4 }}>
+                                                {prog.title} ({prog.level})
+                                            </MenuItem>
+                                        )),
+                                    ])
+                            )}
                         </TextField>
 
                         <Grid container spacing={2}>
@@ -416,7 +634,6 @@ export default function ApplicationPage() {
                         </Typography>
 
                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                            {/* Document item renderer */}
                             {[
                                 {
                                     key: 'certificate' as const,
@@ -425,7 +642,7 @@ export default function ApplicationPage() {
                                 },
                                 {
                                     key: 'nrcOrPassport' as const,
-                                    label: 'NRC or Passport Copy',
+                                    label: identityType === 'nrc' ? 'NRC Copy' : 'Passport Copy',
                                     required: true,
                                 },
                                 {
@@ -492,6 +709,7 @@ export default function ApplicationPage() {
                                                         onChange={(e) => {
                                                             const file = e.target.files?.[0];
                                                             if (file) handleFileUpload(doc.key, file);
+                                                            e.target.value = '';
                                                         }}
                                                     />
                                                 </Button>

@@ -11,7 +11,6 @@ import { RequireRole } from "./components/auth/RequireRole";
 // Error Pages & Utilities
 import GlobalErrorPage from "./components/errors/GlobalErrorPage";
 import PortalErrorPage from "./components/errors/PortalErrorPage";
-import PageTransition from "./components/PageTransition";
 import { adminNavItems, lecturerNavItems, studentNavItems, applicantNavItems } from "./config/navItems";
 
 // Public Pages
@@ -25,6 +24,8 @@ import TermsOfServicePage from "./pages/public/TermsOfServicePage";
 
 // Applicant Pages
 import ApplicantDashboard from "./pages/applicant/Dashboard/Page";
+import ApplicationPage from "./pages/applicant/Application/Page";
+import InfoPage from "./pages/applicant/Info/Page";
 
 // Student Pages
 import StudentDashboard from "./pages/student/StudentDashboard/Page";
@@ -50,7 +51,6 @@ import SchoolDetailsPage from "./pages/admin/SchoolDetailsPage/Page";
 import AdminProgramDetailsPage from "./pages/admin/ProgramDetailsPage/Page";
 import LecturerDetailsPage from "./pages/admin/LecturerDetailsPage/Page";
 import NotificationDetailPage from "./pages/shared/NotificationDetailPage";
-import ApplicationPage from "./pages/applicant/Application/Page.tsx";
 
 const throwNotFound = () => {
     throw new Response("Not Found", { status: 404 });
@@ -66,7 +66,6 @@ export const router = createBrowserRouter([
                 element: <PublicLayout />,
                 children: [
                     {
-                        element: <PageTransition />,
                         errorElement: <GlobalErrorPage />,
                         children: [
                             { index: true, element: <LandingPage /> },
@@ -151,7 +150,6 @@ export const router = createBrowserRouter([
                                 element: <PortalLayout navItems={lecturerNavItems} />,
                                 children: [
                                     {
-                                        element: <PageTransition />,
                                         errorElement: <PortalErrorPage />,
                                         children: [
                                             { index: true, element: <Navigate to="dashboard" replace /> },
@@ -173,12 +171,12 @@ export const router = createBrowserRouter([
                                 element: <PortalLayout navItems={applicantNavItems} />,
                                 children: [
                                     {
-                                        element: <PageTransition />,
                                         errorElement: <PortalErrorPage />,
                                         children: [
                                             { index: true, element: <Navigate to="dashboard" replace /> },
                                             { path: "dashboard", element: <ApplicantDashboard /> },
                                             { path: "application", element: <ApplicationPage /> },
+                                            { path: "info", element: <InfoPage /> },
                                             { path: "*", loader: throwNotFound }
                                         ]
                                     }
@@ -198,7 +196,6 @@ export const router = createBrowserRouter([
                                 element: <PortalLayout navItems={studentNavItems} />,
                                 children: [
                                     {
-                                        element: <PageTransition />,
                                         errorElement: <PortalErrorPage />,
                                         children: [
                                             { index: true, element: <Navigate to="dashboard" replace /> },

@@ -3,8 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@apollo/client/react';
 import {
     Box, Container, Typography, Paper, Tabs, Tab, TextField, MenuItem,
-    List, ListItemButton, ListItemAvatar, Avatar, ListItemText, Chip, Button,
-    useTheme, useMediaQuery, Divider, CircularProgress, Alert
+    Avatar, Chip, Button, CircularProgress, Alert, Table, TableBody,
+    TableCell, TableContainer, TableHead, TableRow
 } from '@mui/material';
 import PersonIcon from '@mui/icons-material/Person';
 import CancelIcon from '@mui/icons-material/Cancel';
@@ -69,14 +69,24 @@ interface GetStudentsListVariables {
     programId?: string;
 }
 
+const getStatusChipColor = (status: StudentStatusEnum): "default" | "primary" | "secondary" | "error" | "info" | "success" | "warning" => {
+    switch (status) {
+        case 'REGISTERED': return 'success';
+        case 'ADMITTED': return 'info';
+        case 'PENDING': return 'warning';
+        case 'REJECTED':
+        case 'SUSPENDED': return 'error';
+        case 'GRADUATED': return 'secondary';
+        default: return 'default';
+    }
+};
+
 // ----------------------------------------------------------------------
 // Component
 // ----------------------------------------------------------------------
 
 export default function StudentsPage() {
     const navigate = useNavigate();
-    const theme = useTheme();
-    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
     const [currentTab, setCurrentTab] = useState(0);
     const [filterSchoolId, setFilterSchoolId] = useState('All');
@@ -111,36 +121,36 @@ export default function StudentsPage() {
         }
     );
 
-    // Map Relay edges to flat array
     const rawStudents = useMemo<StudentNode[]>(() => {
         if (!studentsData?.students?.edges) return [];
         return studentsData.students.edges.map((edge) => edge.node);
     }, [studentsData]);
 
-    // Compute target statuses based on current tab
     const targetStatuses = useMemo<StudentStatusEnum[]>(() => {
         if (currentTab === 0) return ['REGISTERED', 'SUSPENDED', 'GRADUATED'];
         if (currentTab === 1) return ['ADMITTED'];
         return ['PENDING', 'REJECTED'];
     }, [currentTab]);
 
-    // Helper function to resolve reference number according to selected tab
+    const refColumnLabel = useMemo(() => {
+        if (currentTab === 0) return 'Student ID';
+        if (currentTab === 1) return 'Admission No.';
+        return 'Application No.';
+    }, [currentTab]);
+
     const getDisplayNumber = (student: StudentNode, tab: number): string => {
         if (tab === 0) return student.studentNumber ?? 'N/A';
         if (tab === 1) return student.admissionNumber ?? 'N/A';
         return student.applicationNumber ?? 'N/A';
     };
 
-    // Filter and Sort Logic
     const processedStudents = useMemo(() => {
         let result = rawStudents.filter((s) => targetStatuses.includes(s.status));
 
-        // Filter by School ID
         if (filterSchoolId !== 'All') {
             result = result.filter((s) => s.program.school.id === filterSchoolId);
         }
 
-        // Sort
         result.sort((a, b) => {
             if (sortBy === 'name') {
                 const nameA = `${a.lastName} ${a.firstName}`.toLowerCase();
@@ -169,7 +179,6 @@ export default function StudentsPage() {
         }
     };
 
-    // Status Label Formatting
     const formatStatus = (status: StudentStatusEnum): string => {
         return status.charAt(0) + status.slice(1).toLowerCase();
     };
@@ -181,22 +190,36 @@ export default function StudentsPage() {
                 <Typography variant="h4" sx={{ fontWeight: 800 }}>Students & Admissions</Typography>
                 {actionError && <Alert severity="error" onClose={() => setActionError(null)}>{actionError}</Alert>}
 
-                {/* Tabs & Filters */}
-                <Paper variant="outlined" sx={{ borderRadius: 2 }}>
-                    <Tabs
-                        value={currentTab}
-                        onChange={(_, v) => setCurrentTab(v)}
-                        variant="scrollable"
-                        scrollButtons="auto"
-                        sx={{ borderBottom: 1, borderColor: 'divider' }}
-                    >
-                        <Tab label="Registered Students" />
-                        <Tab label="Admissions" />
-                        <Tab label="Applications" />
-                    </Tabs>
+                {/* Single Master Card containing Tabs, Filters, and Table */}
+                <Paper variant="outlined" sx={{ borderRadius: 2, overflow: 'hidden' }}>
 
-                    <Box sx={{ p: 2, display: 'flex', flexWrap: 'wrap', gap: 2, backgroundColor: 'background.paper' }}>
-                        {/* School Filter */}
+                    {/* Tabs Bar */}
+                    <Box sx={{ borderBottom: 1, borderColor: 'divider', backgroundColor: 'background.paper' }}>
+                        <Tabs
+                            value={currentTab}
+                            onChange={(_, v) => setCurrentTab(v)}
+                            variant="scrollable"
+                            scrollButtons="auto"
+                        >
+                            <Tab label="Registered Students" />
+                            <Tab label="Admissions" />
+                            <Tab label="Applications" />
+                        </Tabs>
+                    </Box>
+
+                    {/* Responsive Filters Row */}
+                    <Box
+                        sx={{
+                            p: 2,
+                            display: 'flex',
+                            flexDirection: { xs: 'column', sm: 'row' },
+                            alignItems: 'center',
+                            gap: 2,
+                            borderBottom: 1,
+                            borderColor: 'divider',
+                            backgroundColor: 'background.paper'
+                        }}
+                    >
                         <TextField
                             select
                             label="School"
@@ -206,7 +229,7 @@ export default function StudentsPage() {
                                 setFilterProgramId('All');
                             }}
                             size="small"
-                            sx={{ minWidth: 200, flex: { xs: '1 1 100%', sm: '0 0 auto' } }}
+                            sx={{ width: { xs: '100%', sm: 220 } }}
                         >
                             <MenuItem value="All">All Schools</MenuItem>
                             {schoolsList.map((school) => (
@@ -214,14 +237,13 @@ export default function StudentsPage() {
                             ))}
                         </TextField>
 
-                        {/* Program Filter */}
                         <TextField
                             select
                             label="Program"
                             value={filterProgramId}
                             onChange={(e) => setFilterProgramId(e.target.value)}
                             size="small"
-                            sx={{ minWidth: 200, flex: { xs: '1 1 100%', sm: '0 0 auto' } }}
+                            sx={{ width: { xs: '100%', sm: 220 } }}
                         >
                             <MenuItem value="All">All Programs</MenuItem>
                             {programsList.map((program) => (
@@ -229,23 +251,20 @@ export default function StudentsPage() {
                             ))}
                         </TextField>
 
-                        {/* Sort Dropdown */}
                         <TextField
                             select
                             label="Sort By"
                             value={sortBy}
                             onChange={(e) => setSortBy(e.target.value as 'name' | 'id')}
                             size="small"
-                            sx={{ minWidth: 150, ml: { sm: 'auto' }, flex: { xs: '1 1 100%', sm: '0 0 auto' } }}
+                            sx={{ width: { xs: '100%', sm: 180 }, ml: { sm: 'auto' } }}
                         >
                             <MenuItem value="name">Alphabetical</MenuItem>
                             <MenuItem value="id">Reference Number</MenuItem>
                         </TextField>
                     </Box>
-                </Paper>
 
-                {/* Student List */}
-                <Paper variant="outlined" sx={{ borderRadius: 2, overflow: 'hidden' }}>
+                    {/* Table */}
                     {loading ? (
                         <Box sx={{ p: 6, display: 'flex', justifyContent: 'center' }}>
                             <CircularProgress />
@@ -255,66 +274,89 @@ export default function StudentsPage() {
                             <Alert severity="error">Failed to load students: {error.message}</Alert>
                         </Box>
                     ) : (
-                        <List disablePadding>
-                            {processedStudents.length === 0 ? (
-                                <Box sx={{ p: 4, textAlign: 'center' }}>
-                                    <Typography color="text.secondary">No students found.</Typography>
-                                </Box>
-                            ) : (
-                                processedStudents.map((student, idx) => (
-                                    <React.Fragment key={student.id}>
-                                        <ListItemButton
-                                            onClick={() => navigate(`/admin/students/${student.id}`)}
-                                            sx={{ py: 2, flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'flex-start' : 'center', gap: 2 }}
-                                        >
-                                            <Box sx={{ display: 'flex', width: '100%', alignItems: 'center' }}>
-                                                <ListItemAvatar>
-                                                    <Avatar sx={{ backgroundColor: 'primary.light', color: 'primary.dark' }}>
-                                                        <PersonIcon />
-                                                    </Avatar>
-                                                </ListItemAvatar>
-                                                <ListItemText
-                                                    primary={
-                                                        <Typography sx={{ fontWeight: 600 }}>
-                                                            {student.lastName}, {student.firstName}
-                                                        </Typography>
-                                                    }
-                                                    secondary={
-                                                        <Box component="span" sx={{ display: 'flex', flexDirection: 'column', gap: 0.5, mt: 0.5 }}>
-                                                            <Typography variant="body2" component="span">
-                                                                {getDisplayNumber(student, currentTab)} | {student.program.title}
+                        <TableContainer>
+                            <Table sx={{ minWidth: 650 }}>
+                                <TableHead sx={{ backgroundColor: 'action.hover' }}>
+                                    <TableRow>
+                                        <TableCell sx={{ fontWeight: 700 }}>Student Name</TableCell>
+                                        <TableCell sx={{ fontWeight: 700 }}>{refColumnLabel}</TableCell>
+                                        <TableCell sx={{ fontWeight: 700 }}>Program & School</TableCell>
+                                        <TableCell sx={{ fontWeight: 700 }}>Status</TableCell>
+                                        {currentTab === 1 && <TableCell align="right" sx={{ fontWeight: 700 }}>Actions</TableCell>}
+                                    </TableRow>
+                                </TableHead>
+                                <TableBody>
+                                    {processedStudents.length === 0 ? (
+                                        <TableRow>
+                                            <TableCell colSpan={currentTab === 1 ? 5 : 4} align="center" sx={{ py: 6 }}>
+                                                <Typography color="text.secondary">No students found.</Typography>
+                                            </TableCell>
+                                        </TableRow>
+                                    ) : (
+                                        processedStudents.map((student) => (
+                                            <TableRow
+                                                key={student.id}
+                                                hover
+                                                onClick={() => navigate(`/admin/students/${student.id}`)}
+                                                sx={{ cursor: 'pointer' }}
+                                            >
+                                                <TableCell>
+                                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                                        <Avatar sx={{ width: 36, height: 36, backgroundColor: 'primary.light', color: 'primary.dark' }}>
+                                                            <PersonIcon fontSize="small" />
+                                                        </Avatar>
+                                                        <Box>
+                                                            <Typography sx={{ fontWeight: 600, fontSize: '0.95rem' }}>
+                                                                {student.lastName}, {student.firstName}
                                                             </Typography>
-                                                            {isMobile && (
-                                                                <Chip size="small" label={formatStatus(student.status)} sx={{ alignSelf: 'flex-start', mt: 0.5 }} />
-                                                            )}
+                                                            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
+                                                                {student.email}
+                                                            </Typography>
                                                         </Box>
-                                                    }
-                                                />
-                                            </Box>
+                                                    </Box>
+                                                </TableCell>
 
-                                            {/* Actions & Badges */}
-                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, width: isMobile ? '100%' : 'auto', justifyContent: isMobile ? 'flex-end' : 'flex-start' }}>
-                                                {!isMobile && <Chip label={formatStatus(student.status)} size="small" />}
+                                                <TableCell sx={{ fontWeight: 500, fontFamily: 'monospace' }}>
+                                                    {getDisplayNumber(student, currentTab)}
+                                                </TableCell>
+
+                                                <TableCell>
+                                                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                                                        {student.program.title}
+                                                    </Typography>
+                                                    <Typography variant="caption" color="text.secondary">
+                                                        {student.program.school.name}
+                                                    </Typography>
+                                                </TableCell>
+
+                                                <TableCell>
+                                                    <Chip
+                                                        label={formatStatus(student.status)}
+                                                        size="small"
+                                                        color={getStatusChipColor(student.status)}
+                                                    />
+                                                </TableCell>
 
                                                 {currentTab === 1 && (
-                                                    <Button
-                                                        variant="outlined"
-                                                        color="error"
-                                                        size="small"
-                                                        startIcon={<CancelIcon />}
-                                                        onClick={(e) => handleCancelAdmission(e, student.id)}
-                                                        disabled={isRejecting === student.id}
-                                                    >
-                                                        {isRejecting === student.id ? 'Cancelling…' : 'Cancel'}
-                                                    </Button>
+                                                    <TableCell align="right">
+                                                        <Button
+                                                            variant="outlined"
+                                                            color="error"
+                                                            size="small"
+                                                            startIcon={<CancelIcon />}
+                                                            onClick={(e) => handleCancelAdmission(e, student.id)}
+                                                            disabled={isRejecting === student.id}
+                                                        >
+                                                            {isRejecting === student.id ? 'Cancelling…' : 'Cancel'}
+                                                        </Button>
+                                                    </TableCell>
                                                 )}
-                                            </Box>
-                                        </ListItemButton>
-                                        {idx < processedStudents.length - 1 && <Divider component="li" />}
-                                    </React.Fragment>
-                                ))
-                            )}
-                        </List>
+                                            </TableRow>
+                                        ))
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </TableContainer>
                     )}
                 </Paper>
             </Container>

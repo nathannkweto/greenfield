@@ -35,29 +35,27 @@ export default function AdminDashboard() {
         <Box
             sx={{
                 backgroundColor: 'background.default',
-                minHeight: '70vh',
+                flexGrow: 1,
                 width: '100%',
-                overflowX: 'hidden',
-                py: { xs: 2, md: 4 },
+                py: { xs: 3, md: 4 },
             }}
         >
-            <Container maxWidth="xl" sx={{ px: { xs: 1.5, sm: 3 }, display: 'flex', flexDirection: 'column', gap: 3 }}>
+            <Container maxWidth="xl" sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+
                 {/* Header Section */}
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
-                    <Box sx={{ minWidth: 0 }}>
-                        <Typography variant="h4" sx={{ fontWeight: 800, overflowWrap: 'anywhere' }}>
-                            Dashboard
-                        </Typography>
-                        <Typography variant="subtitle1" color="text.secondary">
-                            Welcome back, Administrator
-                        </Typography>
-                    </Box>
+                <Box sx={{ minWidth: 0 }}>
+                    <Typography variant="h4" sx={{ fontWeight: 800, wordBreak: 'break-word' }}>
+                        Dashboard
+                    </Typography>
+                    <Typography variant="subtitle1" color="text.secondary">
+                        Welcome back, Administrator
+                    </Typography>
                 </Box>
 
                 {/* Error Banner */}
                 {error && (
-                    <Alert severity="error">
-                        Failed to load: {error.message}
+                    <Alert severity="error" sx={{ borderRadius: 2 }}>
+                        Failed to load dashboard data: {error.message}
                     </Alert>
                 )}
 
@@ -67,10 +65,12 @@ export default function AdminDashboard() {
                         display: 'flex',
                         gap: 1.5,
                         overflowX: 'auto',
-                        pb: 1,
-                        '&::-webkit-scrollbar': { display: 'none' },
-                        msOverflowStyle: 'none',
-                        scrollbarWidth: 'none',
+                        py: 0.5,
+                        '&::-webkit-scrollbar': { height: 6 },
+                        '&::-webkit-scrollbar-thumb': {
+                            backgroundColor: 'divider',
+                            borderRadius: 3,
+                        },
                     }}
                 >
                     <Button
@@ -101,16 +101,15 @@ export default function AdminDashboard() {
                 </Box>
 
                 {/* Main Content Layout */}
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, width: '100%' }}>
-                    <DashboardStats
-                        totalStudents={totalStudents}
-                        totalPrograms={totalPrograms}
-                        totalSchools={totalSchools}
-                        pendingApps={pendingApps}
-                        loading={loading}
-                    />
-                    <FinancialOverviewCard loading={loading} />
-                </Box>
+                <DashboardStats
+                    totalStudents={totalStudents}
+                    totalPrograms={totalPrograms}
+                    totalSchools={totalSchools}
+                    pendingApps={pendingApps}
+                    loading={loading}
+                />
+                <FinancialOverviewCard loading={loading} />
+
             </Container>
         </Box>
     );

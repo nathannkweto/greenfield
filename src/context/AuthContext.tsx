@@ -1,4 +1,14 @@
+// src/context/AuthContext.ts (or wherever your Auth types reside)
 import { createContext, useContext } from 'react';
+
+export interface ApplicantProfile {
+    id: string;
+    firstName?: string;
+    middleNames?: string;
+    lastName?: string;
+    email?: string;
+    phone?: string;
+}
 
 export interface StudentProfile {
     id?: string;
@@ -8,13 +18,12 @@ export interface StudentProfile {
 
 export interface AuthUser {
     id: string;
-    firstName: string;
     email: string;
-    roles?: string[];
+    phone?: string;
+    applicants?: ApplicantProfile[];
+    students?: StudentProfile[];
     admins?: unknown[];
     lecturers?: unknown[];
-    students?: StudentProfile[];
-    applicants?: unknown[];
 }
 
 export interface AuthContextType {

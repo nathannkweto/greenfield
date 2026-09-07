@@ -11,7 +11,7 @@ import {
     AdminPanelSettings as AdminPanelSettingsIcon,
     FactCheck as FactCheckIcon,
     Person as PersonIcon,
-    Description as DescriptionIcon,
+    Description as DescriptionIcon, QuestionMark,
 } from '@mui/icons-material';
 import { type SvgIconComponent } from '@mui/icons-material';
 
@@ -46,5 +46,5 @@ export const studentNavItems: NavItem[] = [
 export const applicantNavItems: NavItem[] = [
     { name: 'Dashboard', path: '/applicant/dashboard', icon: DashboardIcon },
     { name: 'My Application', path: '/applicant/application', icon: DescriptionIcon },
-    { name: 'Profile', path: '/applicant/profile', icon: PersonIcon },
+    { name: 'Info', path: '/applicant/info', icon: QuestionMark },
 ];

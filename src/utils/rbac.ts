@@ -61,7 +61,7 @@ export const getRoleBasedPath = (
     }
 
     if (roles.includes('applicant')) {
-        return '/applicant/dashboard';
+        return '/applicant/info';
     }
 
     return '/login';

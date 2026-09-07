@@ -23,6 +23,7 @@
     "formik": "^2.4.9",
     "framer-motion": "^13.1.0",
     "graphql": "^16.14.2",
+    "jspdf": "^4.2.1",
     "laravel-echo": "^2.4.0",
     "pusher-js": "^8.6.0",
     "react": "^19.2.6",

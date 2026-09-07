@@ -1,3 +1,4 @@
+import { useQuery } from '@apollo/client/react';
 import {
     Container,
     Typography,
@@ -12,7 +13,9 @@ import {
     ListItemText,
     Card,
     CardContent,
-    Divider
+    Divider,
+    CircularProgress,
+    Alert
 } from '@mui/material';
 import {
     CheckCircle as CheckIcon,
@@ -25,42 +28,49 @@ import {
     Lock as LockIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-
-// Types for Applicant Status (Replace with API response data as needed)
-type AdmissionStatus = 'pending' | 'admitted' | 'rejected';
-
-interface ApplicationProgress {
-    detailsCompleted: boolean;
-    documentsUploaded: boolean;
-    admissionStatus: AdmissionStatus;
-    feesPaid: boolean;
-    documentsSubmitted: boolean;
-}
+import { GET_ME } from '../../../graphql/queries/auth';
+import type { AuthUser } from '../../../context/AuthContext';
 
 export default function ApplicantDashboard() {
     const navigate = useNavigate();
 
-    // Mock progress data — replace with custom hook/API call (e.g., useApplicantData())
-    const progress: ApplicationProgress = {
-        detailsCompleted: true,
-        documentsUploaded: true,
-        admissionStatus: 'pending', // 'pending' | 'admitted' | 'rejected'
-        feesPaid: false,
-        documentsSubmitted: false,
-    };
+    const { data, loading, error } = useQuery<{ me: AuthUser }>(GET_ME);
 
-    const isApplicationComplete = progress.detailsCompleted && progress.documentsUploaded;
-    const isAdmitted = progress.admissionStatus === 'admitted';
-    const isRejected = progress.admissionStatus === 'rejected';
+    if (loading) {
+        return (
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '50vh' }}>
+                <CircularProgress />
+            </Box>
+        );
+    }
+
+    if (error) {
+        return (
+            <Container maxWidth="lg" disableGutters>
+                <Alert severity="error">
+                    Failed to load application progress. Please try refreshing the page.
+                </Alert>
+            </Container>
+        );
+    }
+
+    const studentProfile = data?.me?.students?.[0];
+    const hasStudentProfile = Boolean(studentProfile);
+    const rawStatus = (studentProfile?.status || '').toLowerCase();
+
+    const isSubmitted = hasStudentProfile;
+    const isPending = rawStatus === 'pending';
+    const isAdmitted = rawStatus === 'admitted' || rawStatus === 'registered';
+    const isRejected = rawStatus === 'rejected';
 
     return (
-        <Container maxWidth="lg" sx={{ py: 4 }}>
-            {/* Greeting Header */}
+        /* Reduced vertical padding to prevent layout stacking */
+        <Container maxWidth="lg" disableGutters sx={{ py: 1 }}>
+            {/* Header */}
             <Box sx={{ mb: 4 }}>
                 <Typography variant="h4" sx={{ fontWeight: 800, mb: 1 }}>
                     Application Status & Progress
                 </Typography>
-
                 <Typography variant="body1" color="text.secondary">
                     Track your application process, check admission results, and complete enrollment steps.
                 </Typography>
@@ -68,7 +78,6 @@ export default function ApplicantDashboard() {
 
             {/* Main Grid Tracker */}
             <Grid container spacing={3}>
-
                 {/* STAGE 1: APPLY */}
                 <Grid size={{ xs: 12, md: 4 }}>
                     <Card
@@ -78,8 +87,8 @@ export default function ApplicantDashboard() {
                             display: 'flex',
                             flexDirection: 'column',
                             borderRadius: 3,
-                            borderColor: isApplicationComplete ? 'success.main' : 'divider',
-                            borderWidth: isApplicationComplete ? 2 : 1,
+                            borderColor: isSubmitted ? 'success.main' : 'primary.main',
+                            borderWidth: 2,
                         }}
                     >
                         <CardContent sx={{ flexGrow: 1 }}>
@@ -87,7 +96,7 @@ export default function ApplicantDashboard() {
                                 <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary', textTransform: 'uppercase' }}>
                                     Step 1
                                 </Typography>
-                                {isApplicationComplete ? (
+                                {isSubmitted ? (
                                     <Chip icon={<CheckIcon />} label="Completed" color="success" size="small" />
                                 ) : (
                                     <Chip label="In Progress" color="warning" size="small" />
@@ -99,21 +108,29 @@ export default function ApplicantDashboard() {
                             </Typography>
 
                             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                                Fill out your personal info, academic details, and upload all required documents.
+                                {isSubmitted
+                                    ? 'Your application details and documents have been successfully submitted.'
+                                    : 'Fill out your personal info, academic details, and upload all required documents.'}
                             </Typography>
 
-                            <List size="small" disablePadding>
+                            <List dense disablePadding>
                                 <ListItem disableGutters>
                                     <ListItemIcon sx={{ minWidth: 32 }}>
-                                        {progress.detailsCompleted ? <CheckIcon color="success" fontSize="small" /> : <PendingIcon color="action" fontSize="small" />}
+                                        {isSubmitted ? <CheckIcon color="success" fontSize="small" /> : <PendingIcon color="action" fontSize="small" />}
                                     </ListItemIcon>
-                                    <ListItemText primary="Personal & Academic Details" primaryTypographyProps={{ variant: 'body2' }} />
+                                    <ListItemText
+                                        primary="Personal & Academic Details"
+                                        slotProps={{ primary: { variant: 'body2' } }}
+                                    />
                                 </ListItem>
                                 <ListItem disableGutters>
                                     <ListItemIcon sx={{ minWidth: 32 }}>
-                                        {progress.documentsUploaded ? <CheckIcon color="success" fontSize="small" /> : <UploadIcon color="action" fontSize="small" />}
+                                        {isSubmitted ? <CheckIcon color="success" fontSize="small" /> : <UploadIcon color="action" fontSize="small" />}
                                     </ListItemIcon>
-                                    <ListItemText primary="Document Uploads" primaryTypographyProps={{ variant: 'body2' }} />
+                                    <ListItemText
+                                        primary="Document Uploads"
+                                        slotProps={{ primary: { variant: 'body2' } }}
+                                    />
                                 </ListItem>
                             </List>
                         </CardContent>
@@ -123,12 +140,12 @@ export default function ApplicantDashboard() {
                         <Box sx={{ p: 2 }}>
                             <Button
                                 fullWidth
-                                variant={isApplicationComplete ? 'outlined' : 'contained'}
+                                variant={isSubmitted ? 'outlined' : 'contained'}
                                 color="primary"
                                 endIcon={<ArrowForwardIcon />}
                                 onClick={() => navigate('/applicant/application')}
                             >
-                                {isApplicationComplete ? 'View Application' : 'Complete Application'}
+                                {isSubmitted ? 'View Application' : 'Complete Application'}
                             </Button>
                         </Box>
                     </Card>
@@ -143,8 +160,9 @@ export default function ApplicantDashboard() {
                             display: 'flex',
                             flexDirection: 'column',
                             borderRadius: 3,
-                            borderColor: isAdmitted ? 'success.main' : isRejected ? 'error.main' : 'divider',
-                            borderWidth: isAdmitted || isRejected ? 2 : 1,
+                            borderColor: isAdmitted ? 'success.main' : isRejected ? 'error.main' : isPending ? 'info.main' : 'divider',
+                            borderWidth: isAdmitted || isRejected || isPending ? 2 : 1,
+                            opacity: isSubmitted ? 1 : 0.6,
                         }}
                     >
                         <CardContent sx={{ flexGrow: 1 }}>
@@ -154,7 +172,8 @@ export default function ApplicantDashboard() {
                                 </Typography>
                                 {isAdmitted && <Chip icon={<CheckIcon />} label="Admitted" color="success" size="small" />}
                                 {isRejected && <Chip icon={<CrossIcon />} label="Not Admitted" color="error" size="small" />}
-                                {progress.admissionStatus === 'pending' && <Chip icon={<PendingIcon />} label="Under Review" color="info" size="small" />}
+                                {isPending && <Chip icon={<PendingIcon />} label="Under Review" color="info" size="small" />}
+                                {!isSubmitted && <Chip icon={<LockIcon />} label="Locked" size="small" variant="outlined" />}
                             </Box>
 
                             <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>
@@ -162,7 +181,16 @@ export default function ApplicantDashboard() {
                             </Typography>
 
                             <Box sx={{ textAlign: 'center', py: 3 }}>
-                                {isAdmitted && (
+                                {!isSubmitted && (
+                                    <>
+                                        <LockIcon color="disabled" sx={{ fontSize: 48, mb: 1 }} />
+                                        <Typography variant="body2" color="text.secondary">
+                                            Submit your application to enter committee review.
+                                        </Typography>
+                                    </>
+                                )}
+
+                                {isSubmitted && isAdmitted && (
                                     <>
                                         <CheckIcon color="success" sx={{ fontSize: 48, mb: 1 }} />
                                         <Typography variant="subtitle1" sx={{ fontWeight: 700, color: 'success.main' }}>
@@ -174,7 +202,7 @@ export default function ApplicantDashboard() {
                                     </>
                                 )}
 
-                                {isRejected && (
+                                {isSubmitted && isRejected && (
                                     <>
                                         <CrossIcon color="error" sx={{ fontSize: 48, mb: 1 }} />
                                         <Typography variant="subtitle1" sx={{ fontWeight: 700, color: 'error.main' }}>
@@ -186,7 +214,7 @@ export default function ApplicantDashboard() {
                                     </>
                                 )}
 
-                                {progress.admissionStatus === 'pending' && (
+                                {isSubmitted && isPending && (
                                     <>
                                         <PendingIcon color="info" sx={{ fontSize: 48, mb: 1 }} />
                                         <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
@@ -211,6 +239,8 @@ export default function ApplicantDashboard() {
                             display: 'flex',
                             flexDirection: 'column',
                             borderRadius: 3,
+                            borderColor: isAdmitted ? 'primary.main' : 'divider',
+                            borderWidth: isAdmitted ? 2 : 1,
                             opacity: isAdmitted ? 1 : 0.6,
                             backgroundColor: isAdmitted ? 'background.paper' : 'action.hover',
                         }}
@@ -241,11 +271,11 @@ export default function ApplicantDashboard() {
                             ) : (
                                 <>
                                     <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                                        Follow the steps below to finalize your student enrolment:
+                                        Follow the steps below to finalize your student enrollment:
                                     </Typography>
 
                                     <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
-                                        <List size="small" disablePadding>
+                                        <List dense disablePadding>
                                             <ListItem disableGutters>
                                                 <ListItemIcon sx={{ minWidth: 32 }}>
                                                     <PaymentIcon color="primary" fontSize="small" />

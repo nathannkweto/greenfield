@@ -43,6 +43,15 @@ export const GET_STUDENT_DETAILS = gql`
           name
         }
       }
+      files {
+          id
+          originalName
+          mimeType
+          size
+          url
+          collection
+          createdAt
+        }
       enrollments {
         id
         status

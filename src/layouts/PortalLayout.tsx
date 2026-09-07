@@ -12,16 +12,9 @@ import DarkModeIcon from '@mui/icons-material/DarkMode';
 import LightModeIcon from '@mui/icons-material/LightMode';
 import type { NavItem } from '../config/navItems';
 
-// Import college info data
 import { COLLEGE_INFO } from '../data/collegeInfo';
-
-// Import color mode context
 import { ColorModeContext } from '../context/ColorModeContext';
-
-// Import generated Orval API helper
 import { getAuth } from '../api/generated';
-
-// Import Notification Bell Component
 import { NotificationBell } from '../components/NotificationBell';
 import { useAuth } from '../context/AuthContext';
 
@@ -31,7 +24,6 @@ interface PortalLayoutProps {
     navItems: NavItem[];
 }
 
-// Instantiate Orval auth methods
 const { getSanctumCsrfCookie, postAuthLogout } = getAuth();
 
 export default function PortalLayout({ navItems }: PortalLayoutProps) {
@@ -42,8 +34,6 @@ export default function PortalLayout({ navItems }: PortalLayoutProps) {
     const { clearSessionRoles } = useAuth();
 
     const [isLoggingOut, setIsLoggingOut] = useState(false);
-
-    // Consume color mode context
     const { toggleColorMode } = useContext(ColorModeContext);
 
     const handleLogout = async () => {
@@ -61,74 +51,69 @@ export default function PortalLayout({ navItems }: PortalLayoutProps) {
         }
     };
 
-    const TopBar = (
-        <AppBar
-            position="fixed"
-            color="inherit"
-            elevation={1}
-            sx={{
-                zIndex: theme.zIndex.drawer + 1,
-                borderBottom: '1px solid',
-                borderColor: 'divider',
-                width: '100%',
-                maxWidth: '100vw',
-            }}>
-            <Toolbar>
-                <Box
-                    component="img"
-                    src={COLLEGE_INFO.logo}
-                    alt={`${COLLEGE_INFO.name} logo`}
-                    sx={{
-                        height: { xs: 28, md: 32 },
-                        width: 'auto',
-                        mr: 1.5,
-                        display: 'flex'
-                    }}
-                />
-
-                <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1, fontWeight: 600 }}>
-                    {COLLEGE_INFO.name} Portal
-                </Typography>
-
-                {/* Notifications, Theme Toggle & Logout Container */}
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <NotificationBell />
-
-                    <IconButton onClick={toggleColorMode} color="inherit">
-                        {theme.palette.mode === 'dark' ? <LightModeIcon /> : <DarkModeIcon />}
-                    </IconButton>
-
-                    {!isMobile ? (
-                        <Button
-                            color="error"
-                            startIcon={isLoggingOut ? <CircularProgress size={18} color="inherit" /> : <LogoutIcon />}
-                            onClick={handleLogout}
-                            disabled={isLoggingOut}
-                        >
-                            Logout
-                        </Button>
-                    ) : (
-                        <IconButton color="error" onClick={handleLogout} disabled={isLoggingOut}>
-                            {isLoggingOut ? <CircularProgress size={20} color="inherit" /> : <LogoutIcon />}
-                        </IconButton>
-                    )}
-                </Box>
-            </Toolbar>
-        </AppBar>
-    );
-
     return (
         <Box
             sx={{
                 display: 'flex',
-                minHeight: '100vh',
+                height: '100vh',
+                width: '100vw',
+                overflow: 'hidden',
                 backgroundColor: 'background.default',
-                width: '100%',
-                maxWidth: '100vw',
-                overflowX: 'hidden'
             }}
         >
-            {TopBar}
+            {/* FIXED TOP APP BAR */}
+            <AppBar
+                position="fixed"
+                color="inherit"
+                elevation={1}
+                sx={{
+                    zIndex: theme.zIndex.drawer + 1,
+                    borderBottom: '1px solid',
+                    borderColor: 'divider',
+                    width: '100%',
+                }}
+            >
+                <Toolbar>
+                    <Box
+                        component="img"
+                        src={COLLEGE_INFO.logo}
+                        alt={`${COLLEGE_INFO.name} logo`}
+                        sx={{
+                            height: { xs: 28, md: 32 },
+                            width: 'auto',
+                            mr: 1.5,
+                            display: 'flex'
+                        }}
+                    />
+
+                    <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1, fontWeight: 600 }}>
+                        {COLLEGE_INFO.name} Portal
+                    </Typography>
+
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <NotificationBell />
+
+                        <IconButton onClick={toggleColorMode} color="inherit">
+                            {theme.palette.mode === 'dark' ? <LightModeIcon /> : <DarkModeIcon />}
+                        </IconButton>
+
+                        {!isMobile ? (
+                            <Button
+                                color="error"
+                                startIcon={isLoggingOut ? <CircularProgress size={18} color="inherit" /> : <LogoutIcon />}
+                                onClick={handleLogout}
+                                disabled={isLoggingOut}
+                            >
+                                Logout
+                            </Button>
+                        ) : (
+                            <IconButton color="error" onClick={handleLogout} disabled={isLoggingOut}>
+                                {isLoggingOut ? <CircularProgress size={20} color="inherit" /> : <LogoutIcon />}
+                            </IconButton>
+                        )}
+                    </Box>
+                </Toolbar>
+            </AppBar>
 
             {/* DESKTOP SIDEBAR */}
             {!isMobile && (
@@ -137,7 +122,11 @@ export default function PortalLayout({ navItems }: PortalLayoutProps) {
                     sx={{
                         width: DRAWER_WIDTH,
                         flexShrink: 0,
-                        [`& .MuiDrawer-paper`]: { width: DRAWER_WIDTH, boxSizing: 'border-box', backgroundColor: 'background.paper' },
+                        [`& .MuiDrawer-paper`]: {
+                            width: DRAWER_WIDTH,
+                            boxSizing: 'border-box',
+                            backgroundColor: 'background.paper'
+                        },
                     }}
                 >
                     <Toolbar />
@@ -175,26 +164,39 @@ export default function PortalLayout({ navItems }: PortalLayoutProps) {
                 </Drawer>
             )}
 
-            {/* MAIN CONTENT AREA */}
+            {/* MAIN SCROLLABLE CONTAINER */}
             <Box
                 component="main"
                 sx={{
                     flexGrow: 1,
-                    p: { xs: 1.5, sm: 3 },
-                    pb: isMobile ? 10 : 3,
-                    minWidth: 0,
-                    width: isMobile ? '100%' : `calc(100% - ${DRAWER_WIDTH}px)`,
+                    height: '100vh',
+                    overflowY: 'auto',
                     boxSizing: 'border-box',
-                    overflowX: 'hidden'
+                    display: 'flex',
+                    flexDirection: 'column',
+                    width: isMobile ? '100%' : `calc(100% - ${DRAWER_WIDTH}px)`,
                 }}
             >
                 <Toolbar />
-                <Outlet />
+
+                {/* Inner Content Area with Breakpoint-Based Padding */}
+                <Box
+                    sx={{
+                        flexGrow: 1,
+                        p: { xs: 2, sm: 3 },
+                        pb: { xs: 9, md: 3 }, // Fixed bottom padding for mobile navigation
+                        boxSizing: 'border-box',
+                        display: 'flex',
+                        flexDirection: 'column',
+                    }}
+                >
+                    <Outlet />
+                </Box>
             </Box>
 
             {/* MOBILE BOTTOM NAVIGATION */}
             {isMobile && (
-                <Paper sx={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 1000 }} >
+                <Paper sx={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 1000 }} elevation={3}>
                     <BottomNavigation
                         showLabels={false}
                         value={location.pathname}

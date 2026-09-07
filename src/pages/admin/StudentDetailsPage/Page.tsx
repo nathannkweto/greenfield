@@ -3,10 +3,12 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@apollo/client/react';
 import {
     Box, Container, Typography, Paper, Button, Avatar, Chip, Grid,
-    LinearProgress, CircularProgress, Alert, Dialog, DialogActions, DialogContent, DialogTitle, TextField
+    LinearProgress, CircularProgress, Alert, Dialog, DialogActions, DialogContent, DialogTitle, TextField, IconButton, Tooltip
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import PersonIcon from '@mui/icons-material/Person';
+import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
+import DownloadIcon from '@mui/icons-material/Download';
 
 import { GET_STUDENT_DETAILS } from './queries';
 import { getStudents } from '../../../api/generated';
@@ -16,6 +18,16 @@ import { getStudents } from '../../../api/generated';
 // ----------------------------------------------------------------------
 
 export type StudentStatusEnum = 'REGISTERED' | 'ADMITTED' | 'PENDING' | 'REJECTED' | 'GRADUATED' | 'SUSPENDED';
+
+export interface FileNode {
+    id: string;
+    originalName: string;
+    mimeType: string;
+    size: number;
+    url?: string | null;
+    collection?: string | null;
+    createdAt: string;
+}
 
 export interface EnrollmentNode {
     id: string;
@@ -76,6 +88,7 @@ export interface StudentDetailNode {
         };
     };
     enrollments?: EnrollmentNode[];
+    files?: FileNode[];
 }
 
 interface GetStudentDetailsData {
@@ -84,6 +97,15 @@ interface GetStudentDetailsData {
 
 interface GetStudentDetailsVariables {
     id: string;
+}
+
+// Helper to format file sizes nicely
+function formatFileSize(bytes: number): string {
+    if (!bytes || bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
 }
 
 // ----------------------------------------------------------------------
@@ -321,7 +343,7 @@ export default function StudentDetailsPage() {
                 )}
 
                 <Grid container spacing={3}>
-                    {/* Left Column: Demographics & Financial */}
+                    {/* Left Column: Demographics, Identity, Documents & Financial */}
                     <Grid size={{ xs: 12, md: 4 }}>
                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                             {/* Personal Details */}
@@ -362,6 +384,61 @@ export default function StudentDetailsPage() {
 
                                 <Typography variant="body2" color="text.secondary">Passport Number</Typography>
                                 <Typography variant="body1">{student.passportNumber || 'N/A'}</Typography>
+                            </Paper>
+
+                            {/* Documents & Attached Files */}
+                            <Paper variant="outlined" sx={{ p: 3, borderRadius: 3 }}>
+                                <Typography variant="h6" sx={{ mb: 2, fontWeight: 700 }}>Documents & Files</Typography>
+
+                                {!student.files || student.files.length === 0 ? (
+                                    <Typography variant="body2" color="text.secondary">No files attached.</Typography>
+                                ) : (
+                                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                                        {student.files.map((file) => (
+                                            <Box
+                                                key={file.id}
+                                                sx={{
+                                                    p: 1.5,
+                                                    border: '1px solid',
+                                                    borderColor: 'divider',
+                                                    borderRadius: 2,
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justify: 'space-between',
+                                                    gap: 1,
+                                                }}
+                                            >
+                                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, overflow: 'hidden' }}>
+                                                    <InsertDriveFileIcon color="action" />
+                                                    <Box sx={{ minWidth: 0 }}>
+                                                        <Typography variant="body2" sx={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                            {file.originalName}
+                                                        </Typography>
+                                                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                                                            {formatFileSize(file.size)} {file.collection ? `• ${file.collection}` : ''}
+                                                        </Typography>
+                                                    </Box>
+                                                </Box>
+
+                                                {file.url && (
+                                                    <Tooltip title="Download File">
+                                                        <IconButton
+                                                            component="a"
+                                                            href={file.url}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            download
+                                                            size="small"
+                                                            color="primary"
+                                                        >
+                                                            <DownloadIcon fontSize="small" />
+                                                        </IconButton>
+                                                    </Tooltip>
+                                                )}
+                                            </Box>
+                                        ))}
+                                    </Box>
+                                )}
                             </Paper>
 
                             {/* Financial Details */}
