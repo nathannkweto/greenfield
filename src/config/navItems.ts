@@ -2,15 +2,7 @@ import {
     Dashboard as DashboardIcon,
     People as PeopleIcon,
     School as SchoolIcon,
-    Settings as SettingsIcon,
-    Assignment as AssignmentIcon,
-    Campaign as CampaignIcon,
     Business as BusinessIcon,
-    AccountBalanceWallet as AccountBalanceWalletIcon,
-    Payments as PaymentsIcon,
-    AdminPanelSettings as AdminPanelSettingsIcon,
-    FactCheck as FactCheckIcon,
-    Person as PersonIcon,
     Description as DescriptionIcon, QuestionMark,
 } from '@mui/icons-material';
 import { type SvgIconComponent } from '@mui/icons-material';
