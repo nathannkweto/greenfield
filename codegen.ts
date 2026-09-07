@@ -34,6 +34,9 @@ const config: CodegenConfig = {
             presetConfig: {
                 gqlTagName: 'graphql', // Name of the typed tag function
             },
+            config: {
+                useTypeImports: true, // Emits 'import type' for TS verbatimModuleSyntax compliance
+            },
         },
     },
     ignoreNoDocuments: true, // Prevents errors before you write your first query
