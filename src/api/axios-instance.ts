@@ -7,17 +7,42 @@ declare const process: { env: Record<string, string | undefined> } | undefined;
  */
 export const getRootUrl = (): string => {
     const url =
-        (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_BASE_URL) ||
-        (typeof process !== 'undefined' && (process.env?.VITE_API_BASE_URL || process.env?.BASE_URL)) ||
+        (typeof import.meta !== 'undefined' && (
+            import.meta.env?.VITE_API_BASE_URL ||
+            import.meta.env?.VITE_API_URL ||
+            import.meta.env?.VITE_GRAPHQL_ENDPOINT
+        )) ||
+        (typeof process !== 'undefined' && (
+            process.env?.VITE_API_BASE_URL ||
+            process.env?.VITE_API_URL ||
+            process.env?.VITE_GRAPHQL_ENDPOINT ||
+            process.env?.BASE_URL
+        )) ||
         '';
 
-    // Strip trailing /api/v1 or trailing slash if present to isolate root host
-    return url.replace(/\/api\/v1\/?$/, '').replace(/\/$/, '');
+    if (!url) {
+        // Hard fallback in production if environment variables are not injected during Vite build
+        if (typeof import.meta !== 'undefined' && import.meta.env?.PROD) {
+            return 'https://api.greenfieldcollege.site';
+        }
+        return '';
+    }
+
+    // Strip trailing /graphql, /api/v1, or trailing slash to isolate root host
+    return url
+        .replace(/\/graphql\/?$/, '')
+        .replace(/\/api\/v1\/?$/, '')
+        .replace(/\/$/, '');
 };
 
 export const getApiBaseUrl = (): string => {
     const root = getRootUrl();
     return root ? `${root}/api/v1` : '/api/v1';
+};
+
+export const getGraphQLUrl = (): string => {
+    const root = getRootUrl();
+    return root ? `${root}/graphql` : 'https://api.greenfieldcollege.site/graphql';
 };
 
 export const AXIOS_INSTANCE = Axios.create({

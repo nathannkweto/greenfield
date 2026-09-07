@@ -1,20 +1,20 @@
 import type { CodegenConfig } from '@graphql-codegen/cli';
+import { loadEnv } from 'vite';
 
-// Declare process.env for Node CLI execution without requiring @types/node
-declare const process: {
-    env: Record<string, string | undefined>;
-};
+// Load environment variables dynamically in Node CLI execution context
+const env = loadEnv(process.env.NODE_ENV || 'development', process.cwd(), '');
 
 /**
  * Resolves the GraphQL schema URL dynamically from environment variables.
  */
 const getSchemaUrl = (): string => {
-    if (process.env.VITE_GRAPHQL_ENDPOINT) {
-        return process.env.VITE_GRAPHQL_ENDPOINT;
-    }
+    const endpoint =
+        env.VITE_GRAPHQL_ENDPOINT ||
+        env.VITE_API_URL ||
+        env.VITE_API_BASE_URL;
 
-    if (process.env.VITE_API_BASE_URL) {
-        const baseUrl = process.env.VITE_API_BASE_URL.replace(/\/$/, '');
+    if (endpoint) {
+        const baseUrl = endpoint.replace(/\/$/, '');
         return baseUrl.endsWith('/graphql') ? baseUrl : `${baseUrl}/graphql`;
     }
 
