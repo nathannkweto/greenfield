@@ -307,7 +307,7 @@ export default function StudentsPage() {
                                                         </Avatar>
                                                         <Box>
                                                             <Typography sx={{ fontWeight: 600, fontSize: '0.95rem' }}>
-                                                                {student.lastName}, {student.firstName}
+                                                                {student.lastName} {student.firstName}
                                                             </Typography>
                                                             <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.8rem' }}>
                                                                 {student.email}

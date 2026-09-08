@@ -3,7 +3,7 @@ import {
     People as PeopleIcon,
     School as SchoolIcon,
     Business as BusinessIcon,
-    Description as DescriptionIcon, QuestionMark,
+    Description as DescriptionIcon, QuestionMark, AdminPanelSettings,
 } from '@mui/icons-material';
 import { type SvgIconComponent } from '@mui/icons-material';
 
@@ -20,7 +20,7 @@ export const adminNavItems: NavItem[] = [
     // { name: 'Results', path: '/admin/results', icon: FactCheckIcon },
     // { name: 'Finance', path: '/admin/finance', icon: PaymentsIcon },
     // { name: 'Communication', path: '/admin/announcements', icon: CampaignIcon },
-    // { name: 'Administrators', path: '/admin/administrators', icon: AdminPanelSettingsIcon },
+    { name: 'Administrators', path: '/admin/administrators', icon: AdminPanelSettings },
 ];
 
 export const lecturerNavItems: NavItem[] = [
