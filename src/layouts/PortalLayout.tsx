@@ -1,15 +1,17 @@
-import { useContext, useState } from 'react';
+import { useContext, useState, useEffect } from 'react';
 import { client as apolloClient } from '../apolloClient';
 import { Outlet, Link as RouterLink, useLocation, useNavigate } from 'react-router-dom';
 import {
     AppBar, Toolbar, Typography, Box, Drawer, List, ListItem,
     ListItemButton, ListItemIcon, ListItemText, BottomNavigation,
     BottomNavigationAction, Paper, useMediaQuery, useTheme, Button, IconButton,
-    CircularProgress
+    CircularProgress, Collapse
 } from '@mui/material';
 import LogoutIcon from '@mui/icons-material/Logout';
 import DarkModeIcon from '@mui/icons-material/DarkMode';
 import LightModeIcon from '@mui/icons-material/LightMode';
+import ExpandLess from '@mui/icons-material/ExpandLess';
+import ExpandMore from '@mui/icons-material/ExpandMore';
 import type { NavItem } from '../config/navItems';
 
 import { COLLEGE_INFO } from '../data/collegeInfo';
@@ -22,6 +24,89 @@ const DRAWER_WIDTH = 240;
 
 interface PortalLayoutProps {
     navItems: NavItem[];
+}
+
+function SidebarNavItem({ item, currentPath }: { item: NavItem; currentPath: string }) {
+    const hasChildren = Boolean(item.children && item.children.length > 0);
+    const isSelected = currentPath === item.path;
+    const isChildSelected = item.children?.some(
+        (child) => currentPath === child.path || (child.path !== '/' && currentPath.startsWith(child.path))
+    );
+
+    const [open, setOpen] = useState(isSelected || Boolean(isChildSelected));
+
+    useEffect(() => {
+        if (isChildSelected) {
+            setOpen(true);
+        }
+    }, [currentPath, isChildSelected]);
+
+    if (hasChildren) {
+        return (
+            <>
+                <ListItem disablePadding sx={{ mb: 0.5, px: 2 }}>
+                    <ListItemButton
+                        onClick={() => setOpen(!open)}
+                        sx={{ borderRadius: 1 }}
+                    >
+                        <ListItemIcon sx={{ minWidth: 40, color: isChildSelected || isSelected ? 'primary.main' : 'inherit' }}>
+                            <item.icon />
+                        </ListItemIcon>
+                        <ListItemText
+                            disableTypography
+                            primary={
+                                <Typography
+                                    sx={{
+                                        fontWeight: isChildSelected || isSelected ? 600 : 400,
+                                        color: isChildSelected || isSelected ? 'primary.main' : 'inherit'
+                                    }}
+                                >
+                                    {item.name}
+                                </Typography>
+                            }
+                        />
+                        {open ? <ExpandLess /> : <ExpandMore />}
+                    </ListItemButton>
+                </ListItem>
+
+                <Collapse in={open} timeout="auto" unmountOnExit>
+                    <List component="div" disablePadding sx={{ pl: 2 }}>
+                        {item.children?.map((child) => (
+                            <SidebarNavItem key={child.name} item={child} currentPath={currentPath} />
+                        ))}
+                    </List>
+                </Collapse>
+            </>
+        );
+    }
+
+    return (
+        <ListItem disablePadding sx={{ mb: 0.5, px: 2 }}>
+            <ListItemButton
+                component={RouterLink}
+                to={item.path}
+                selected={isSelected}
+                sx={{ borderRadius: 1 }}
+            >
+                <ListItemIcon sx={{ minWidth: 40, color: isSelected ? 'primary.main' : 'inherit' }}>
+                    <item.icon />
+                </ListItemIcon>
+                <ListItemText
+                    disableTypography
+                    primary={
+                        <Typography
+                            sx={{
+                                fontWeight: isSelected ? 600 : 400,
+                                color: isSelected ? 'primary.main' : 'inherit'
+                            }}
+                        >
+                            {item.name}
+                        </Typography>
+                    }
+                />
+            </ListItemButton>
+        </ListItem>
+    );
 }
 
 const { getSanctumCsrfCookie, postAuthLogout } = getAuth();
@@ -87,7 +172,7 @@ export default function PortalLayout({ navItems }: PortalLayoutProps) {
                     />
 
                     <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1, fontWeight: 600 }}>
-                        {COLLEGE_INFO.name} Portal
+                        {COLLEGE_INFO.name}
                     </Typography>
 
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -133,31 +218,7 @@ export default function PortalLayout({ navItems }: PortalLayoutProps) {
                     <Box sx={{ overflow: 'auto', mt: 2 }}>
                         <List>
                             {navItems.map((item) => (
-                                <ListItem key={item.name} disablePadding sx={{ mb: 1, px: 2 }}>
-                                    <ListItemButton
-                                        component={RouterLink}
-                                        to={item.path}
-                                        selected={location.pathname === item.path}
-                                        sx={{ borderRadius: 1 }}
-                                    >
-                                        <ListItemIcon sx={{ minWidth: 40, color: location.pathname === item.path ? 'primary.main' : 'inherit' }}>
-                                            <item.icon />
-                                        </ListItemIcon>
-                                        <ListItemText
-                                            disableTypography
-                                            primary={
-                                                <Typography
-                                                    sx={{
-                                                        fontWeight: location.pathname === item.path ? 600 : 400,
-                                                        color: location.pathname === item.path ? 'primary.main' : 'inherit'
-                                                    }}
-                                                >
-                                                    {item.name}
-                                                </Typography>
-                                            }
-                                        />
-                                    </ListItemButton>
-                                </ListItem>
+                                <SidebarNavItem key={item.name} item={item} currentPath={location.pathname} />
                             ))}
                         </List>
                     </Box>
@@ -184,7 +245,7 @@ export default function PortalLayout({ navItems }: PortalLayoutProps) {
                     sx={{
                         flexGrow: 1,
                         p: { xs: 2, sm: 3 },
-                        pb: { xs: 9, md: 3 }, // Fixed bottom padding for mobile navigation
+                        pb: { xs: 9, md: 3 },
                         boxSizing: 'border-box',
                         display: 'flex',
                         flexDirection: 'column',

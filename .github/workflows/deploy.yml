@@ -33,10 +33,9 @@ jobs:
       - name: Build Project
         env:
           VITE_API_BASE_URL: ${{ secrets.API_URL }}
-          VITE_REVERB_APP_KEY: ${{ secrets.REVERB_APP_KEY }}
-          VITE_REVERB_HOST: ${{ secrets.REVERB_HOST }}
-          VITE_REVERB_PORT: ${{ secrets.REVERB_PORT }}
-          VITE_REVERB_SCHEME: ${{ secrets.REVERB_SCHEME }}
+          VITE_PUSHER_APP_KEY: ${{ secrets.PUSHER_APP_KEY }}
+          VITE_PUSHER_APP_CLUSTER: ${{secrets.PUSHER_APP_CLUSTER }}
+
         run: npm run build
 
       - name: Deploy via FTP

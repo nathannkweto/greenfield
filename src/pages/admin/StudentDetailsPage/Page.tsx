@@ -133,6 +133,36 @@ export default function StudentDetailsPage() {
 
     const student = data?.student;
 
+    const handleDownload = async (fileUrl: string, fileName: string) => {
+        try {
+            // Ensure absolute URL if relative path is returned
+            const fullUrl = fileUrl.startsWith('http')
+                ? fileUrl
+                : `${import.meta.env.VITE_API_BASE_URL || ''}${fileUrl}`;
+
+            const response = await fetch(fullUrl);
+
+            if (!response.ok) {
+                throw new Error(`Download failed with status ${response.status}`);
+            }
+
+            const blob = await response.blob();
+            const blobUrl = window.URL.createObjectURL(blob);
+
+            const link = document.createElement('a');
+            link.href = blobUrl;
+            link.download = fileName;
+            document.body.appendChild(link);
+            link.click();
+
+            link.remove();
+            window.URL.revokeObjectURL(blobUrl);
+        } catch (downloadErr) {
+            console.error('Download error:', downloadErr);
+            setMessage(downloadErr instanceof Error ? downloadErr.message : 'Failed to download file.');
+        }
+    };
+
     const admit = async () => {
         if (!student) return;
         setIsSaving(true);
@@ -242,7 +272,7 @@ export default function StudentDetailsPage() {
     const showRegister = student.status === 'ADMITTED';
     const showReject = student.status === 'PENDING' || student.status === 'ADMITTED';
 
-    const fullName = [student.lastName + ',', student.firstName, student.middleNames].filter(Boolean).join(' ');
+    const fullName = [student.lastName + '', student.firstName, student.middleNames].filter(Boolean).join(' ');
 
     return (
         <Box sx={{ backgroundColor: 'background.default', minHeight: '70vh', width: '100%', py: { xs: 2, md: 4 } }}>
@@ -404,7 +434,7 @@ export default function StudentDetailsPage() {
                                                     borderRadius: 2,
                                                     display: 'flex',
                                                     alignItems: 'center',
-                                                    justify: 'space-between',
+                                                    justifyContent: 'space-between',
                                                     gap: 1,
                                                 }}
                                             >
@@ -423,13 +453,9 @@ export default function StudentDetailsPage() {
                                                 {file.url && (
                                                     <Tooltip title="Download File">
                                                         <IconButton
-                                                            component="a"
-                                                            href={file.url}
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
-                                                            download
                                                             size="small"
                                                             color="primary"
+                                                            onClick={() => handleDownload(file.url!, file.originalName)}
                                                         >
                                                             <DownloadIcon fontSize="small" />
                                                         </IconButton>

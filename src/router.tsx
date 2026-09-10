@@ -51,6 +51,10 @@ import SchoolDetailsPage from "./pages/admin/SchoolDetailsPage/Page";
 import AdminProgramDetailsPage from "./pages/admin/ProgramDetailsPage/Page";
 import LecturerDetailsPage from "./pages/admin/LecturerDetailsPage/Page";
 import NotificationDetailPage from "./pages/shared/NotificationDetailPage";
+import FinanceDashboard from "./pages/admin/Finance/Dashboard/Page";
+import FeeTemplatesPage from "./pages/admin/Finance/FeePackages/Page.tsx";
+import FeePaymentsPage from "./pages/admin/Finance/FeePayments/Page.tsx";
+import AccountingPage from "./pages/admin/Finance/Accounting/Page.tsx";
 
 const throwNotFound = () => {
     throw new Response("Not Found", { status: 404 });
@@ -103,10 +107,19 @@ export const router = createBrowserRouter([
                                             { index: true, element: <Navigate to="dashboard" replace /> },
                                             { path: "dashboard", element: <AdminDashboard /> },
                                             {
+                                                path: "finance",
+                                                children: [
+                                                    { index: true, element: <FinanceDashboard />},
+                                                    { path: "fees", element: <FeeTemplatesPage /> },
+                                                    { path: "payments", element: <FeePaymentsPage /> },
+                                                    { path: "accounting", element: <AccountingPage /> }
+                                                ]
+                                            },
+                                            {
                                                 path: "students",
                                                 children: [
                                                     { index: true, element: <StudentsPage /> },
-                                                    { path: ":id", element: <StudentDetailsPage /> }
+                                                    { path: ":id", element: <StudentDetailsPage /> },
                                                 ]
                                             },
                                             {

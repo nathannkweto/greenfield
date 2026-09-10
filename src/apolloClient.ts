@@ -88,7 +88,8 @@ const cache = new InMemoryCache({
     typePolicies: {
         Query: {
             fields: {
-                students: relayStylePagination(),
+                // Keying by 'status' separates cached results by student status
+                students: relayStylePagination(['status']),
                 transactions: relayStylePagination(),
                 invoices: relayStylePagination(),
                 schools: relayStylePagination(),

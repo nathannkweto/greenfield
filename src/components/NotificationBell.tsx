@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useMutation, useQuery } from '@apollo/client/react';
 import { gql } from '@apollo/client';
 import {
     Badge,
@@ -15,42 +16,41 @@ import {
     Alert,
 } from '@mui/material';
 import NotificationsIcon from '@mui/icons-material/Notifications';
-import { createEchoInstance } from '../lib/echo';
+import { getEcho } from '../lib/echo';
 import { useMe } from '../hooks/useMe';
-import {useMutation, useQuery} from "@apollo/client/react";
 
 const GET_NOTIFICATIONS = gql`
-  query GetNotifications {
-    unreadNotificationsCount
-    notifications(first: 10) {
-      data {
-        id
-        read_at
-        created_at
-        data {
-          title
-          body
-          action_url
-          type
+    query GetNotifications {
+        unreadNotificationsCount
+        notifications(first: 10) {
+            data {
+                id
+                read_at
+                created_at
+                data {
+                    title
+                    body
+                    action_url
+                    type
+                }
+            }
         }
-      }
     }
-  }
 `;
 
 const MARK_AS_READ = gql`
-  mutation MarkNotificationAsRead($id: ID!) {
-    markNotificationAsRead(id: $id) {
-      id
-      read_at
+    mutation MarkNotificationAsRead($id: ID!) {
+        markNotificationAsRead(id: $id) {
+            id
+            read_at
+        }
     }
-  }
 `;
 
 const MARK_ALL_AS_READ = gql`
-  mutation MarkAllNotificationsAsRead {
-    markAllNotificationsAsRead
-  }
+    mutation MarkAllNotificationsAsRead {
+        markAllNotificationsAsRead
+    }
 `;
 
 export interface NotificationItem {
@@ -75,53 +75,73 @@ interface GetNotificationsData {
 export function NotificationBell() {
     const { user } = useMe();
     const [anchorEl, setAnchorEl] = useState<HTMLButtonElement | null>(null);
-    const [toast, setToast] = useState({
-        open: false,
-        title: '',
-        body: '',
-    });
+    const [toast, setToast] = useState({ open: false, title: '', body: '' });
+
+    const [localNotifications, setLocalNotifications] = useState<NotificationItem[]>([]);
+    const [localUnreadCount, setLocalUnreadCount] = useState<number>(0);
 
     const { data, refetch } = useQuery<GetNotificationsData>(GET_NOTIFICATIONS, {
         skip: !user,
         fetchPolicy: 'cache-and-network',
     });
 
+    useEffect(() => {
+        if (data) {
+            setLocalNotifications(data.notifications?.data ?? []);
+            setLocalUnreadCount(data.unreadNotificationsCount ?? 0);
+        }
+    }, [data]);
+
     const [markAsRead] = useMutation(MARK_AS_READ);
     const [markAllAsRead] = useMutation(MARK_ALL_AS_READ);
 
     useEffect(() => {
-        if (!user?.id) {
-            return;
-        }
+        if (!user?.id) return;
 
-        const echo = createEchoInstance();
+        const echo = getEcho();
         const channelName = `App.Models.User.${user.id}`;
         const channel = echo.private(channelName);
 
-        channel.notification((incoming: any) => {
+        const handleIncomingNotification = (incoming: any) => {
             const title = incoming.data?.title || incoming.title || 'New Notification';
             const body = incoming.data?.body || incoming.body || '';
+            const id = incoming.id || String(Date.now());
 
-            setToast({
-                open: true,
-                title,
-                body,
-            });
+            setToast({ open: true, title, body });
+            setLocalUnreadCount((prev) => prev + 1);
 
+            const newNotificationItem: NotificationItem = {
+                id,
+                read_at: null,
+                created_at: new Date().toISOString(),
+                data: {
+                    title,
+                    body,
+                    action_url: incoming.data?.action_url || incoming.action_url,
+                    type: incoming.data?.type || incoming.type,
+                },
+            };
+
+            setLocalNotifications((prev) => [newNotificationItem, ...prev]);
             void refetch();
-        });
+        };
+
+        channel.notification(handleIncomingNotification);
+        channel.listen('.NotificationSent', handleIncomingNotification);
 
         return () => {
+            // Unsubscribe from the specific channel without closing the active WebSocket connection
             echo.leave(channelName);
-            echo.disconnect();
         };
-    }, [user?.id, refetch]);
-
-    const unreadCount = data?.unreadNotificationsCount ?? 0;
-    const notifications = data?.notifications?.data ?? [];
+    }, [user?.id]);
 
     const handleItemClick = async (item: NotificationItem) => {
         if (!item.read_at) {
+            setLocalNotifications((prev) =>
+                prev.map((n) => (n.id === item.id ? { ...n, read_at: new Date().toISOString() } : n))
+            );
+            setLocalUnreadCount((prev) => Math.max(0, prev - 1));
+
             await markAsRead({ variables: { id: item.id } });
             void refetch();
         }
@@ -131,6 +151,10 @@ export function NotificationBell() {
     };
 
     const handleMarkAll = async () => {
+        setLocalUnreadCount(0);
+        setLocalNotifications((prev) =>
+            prev.map((n) => ({ ...n, read_at: n.read_at || new Date().toISOString() }))
+        );
         await markAllAsRead();
         void refetch();
     };
@@ -142,7 +166,7 @@ export function NotificationBell() {
     return (
         <>
             <IconButton color="inherit" onClick={(e) => setAnchorEl(e.currentTarget)}>
-                <Badge badgeContent={unreadCount} color="error">
+                <Badge badgeContent={localUnreadCount} color="error">
                     <NotificationsIcon />
                 </Badge>
             </IconButton>
@@ -159,7 +183,7 @@ export function NotificationBell() {
                     <Typography variant="subtitle1" fontWeight={700}>
                         Notifications
                     </Typography>
-                    {unreadCount > 0 && (
+                    {localUnreadCount > 0 && (
                         <Button size="small" onClick={handleMarkAll}>
                             Mark all read
                         </Button>
@@ -168,12 +192,12 @@ export function NotificationBell() {
                 <Divider />
 
                 <List disablePadding sx={{ overflowY: 'auto', maxHeight: 380 }}>
-                    {notifications.length === 0 ? (
+                    {localNotifications.length === 0 ? (
                         <Typography variant="body2" color="text.secondary" sx={{ p: 2, textAlign: 'center' }}>
                             No notifications yet.
                         </Typography>
                     ) : (
-                        notifications.map((item) => (
+                        localNotifications.map((item) => (
                             <ListItem
                                 key={item.id}
                                 component="div"

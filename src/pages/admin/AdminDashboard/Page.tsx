@@ -24,12 +24,14 @@ interface DashboardData {
 
 export default function AdminDashboard() {
     const navigate = useNavigate();
-    const { data, loading, error } = useQuery<DashboardData>(GET_ADMIN_DASHBOARD);
+    const { data, loading, error } = useQuery<DashboardData>(GET_ADMIN_DASHBOARD, {
+        fetchPolicy: 'network-only', // Refreshes data directly from server when returning to this page
+    });
 
-    const totalStudents = data?.registeredStudents.edges.length ?? 0;
-    const pendingApps = data?.pendingApplications.edges.length ?? 0;
-    const totalSchools = data?.schools.edges.length ?? 0;
-    const totalPrograms = data?.programs.edges.length ?? 0;
+    const totalStudents = data?.registeredStudents?.edges?.length ?? 0;
+    const pendingApps = data?.pendingApplications?.edges?.length ?? 0;
+    const totalSchools = data?.schools?.edges?.length ?? 0;
+    const totalPrograms = data?.programs?.edges?.length ?? 0;
 
     return (
         <Box
