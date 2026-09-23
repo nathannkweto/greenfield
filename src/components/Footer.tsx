@@ -1,4 +1,4 @@
-import { Box, Container, Grid, Typography, Link, IconButton, Divider, Stack } from '@mui/material';
+import { Box, Container, Grid, Typography, Link, IconButton, Divider, Stack, Skeleton } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
 import FacebookIcon from '@mui/icons-material/Facebook';
 import LinkedInIcon from '@mui/icons-material/LinkedIn';
@@ -7,15 +7,38 @@ import PhoneIcon from '@mui/icons-material/Phone';
 import EmailIcon from '@mui/icons-material/Email';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
+import { useQuery } from '@apollo/client/react';
 import { COLLEGE_INFO } from '../data/collegeInfo';
+import { GET_FOOTER_SCHOOLS } from '../pages/public/public';
+
+interface SchoolNode {
+    id: string;
+    name: string;
+}
+
+interface Connection<T> {
+    edges?: Array<{ node: T }>;
+    data?: T[];
+}
+
+interface GetFooterSchoolsResponse {
+    schools?: SchoolNode[] | Connection<SchoolNode>;
+}
 
 export default function Footer() {
-    // Explicit dark theme color palette (renders dark regardless of global mode)
-    const darkBg = '#0f172a'; // Deep slate background
-    const borderDark = '#1e293b'; // Subtle divider line
-    const headingColor = '#f8fafc'; // Crisp white headings
-    const textMuted = '#94a3b8'; // Soft gray body/link text
-    const textHover = '#38bdf8'; // Accent color for link hover
+    const darkBg = '#0f172a';
+    const borderDark = '#1e293b';
+    const headingColor = '#f8fafc';
+    const textMuted = '#94a3b8';
+    const textHover = '#38bdf8';
+
+    const { data, loading } = useQuery<GetFooterSchoolsResponse>(GET_FOOTER_SCHOOLS);
+
+    const schools: SchoolNode[] = Array.isArray(data?.schools)
+        ? data.schools
+        : 'edges' in (data?.schools || {})
+            ? data?.schools?.edges?.map((edge) => edge.node) || []
+            : (data?.schools as { data?: SchoolNode[] })?.data || [];
 
     const quickLinks = [
         { label: 'Home', path: '/' },
@@ -23,14 +46,6 @@ export default function Footer() {
         { label: 'Apply for Admission', path: '/apply' },
         { label: 'Contact Us', path: '/contact' },
         { label: 'Login', path: '/login' },
-    ];
-
-    const academicLinks = [
-        { label: 'School of Nursing & Health Sciences', path: '/programs' },
-        { label: 'Business & Management Studies', path: '/programs' },
-        { label: 'Information Technology', path: '/programs' },
-        { label: 'Admissions Requirements', path: '/apply' },
-        { label: 'Academic Calendar', path: '/contact' },
     ];
 
     const socialLinks = [
@@ -72,7 +87,6 @@ export default function Footer() {
                             {COLLEGE_INFO.tagline}
                         </Typography>
 
-                        {/* Social Media Links */}
                         <Stack direction="row" spacing={1}>
                             {socialLinks.map((social) => (
                                 <IconButton
@@ -124,28 +138,34 @@ export default function Footer() {
                         </Stack>
                     </Grid>
 
-                    {/* COLUMN 3: ACADEMICS */}
+                    {/* COLUMN 3: ACADEMICS & ADMISSIONS (DYNAMIC SCHOOLS) */}
                     <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                         <Typography variant="subtitle1" sx={{ fontWeight: 700, color: headingColor, mb: 2 }}>
                             Academics & Admissions
                         </Typography>
                         <Stack spacing={1.2}>
-                            {academicLinks.map((item) => (
-                                <Link
-                                    key={item.label}
-                                    component={RouterLink}
-                                    to={item.path}
-                                    sx={{
-                                        color: textMuted,
-                                        fontSize: '0.875rem',
-                                        textDecoration: 'none',
-                                        transition: 'color 0.2s',
-                                        '&:hover': { color: textHover },
-                                    }}
-                                >
-                                    {item.label}
-                                </Link>
-                            ))}
+                            {loading ? (
+                                Array.from({ length: 4 }).map((_, idx) => (
+                                    <Skeleton key={idx} variant="text" width="80%" sx={{ bgcolor: borderDark }} />
+                                ))
+                            ) : (
+                                schools.map((school) => (
+                                    <Link
+                                        key={school.id}
+                                        component={RouterLink}
+                                        to={`/programs?schoolId=${school.id}`}
+                                        sx={{
+                                            color: textMuted,
+                                            fontSize: '0.875rem',
+                                            textDecoration: 'none',
+                                            transition: 'color 0.2s',
+                                            '&:hover': { color: textHover },
+                                        }}
+                                    >
+                                        {school.name}
+                                    </Link>
+                                ))
+                            )}
                         </Stack>
                     </Grid>
 
@@ -187,10 +207,8 @@ export default function Footer() {
 
                 </Grid>
 
-                {/* DIVIDER */}
                 <Divider sx={{ my: 4, borderColor: borderDark }} />
 
-                {/* BOTTOM LEGAL / COPYRIGHT ROW */}
                 <Box
                     sx={{
                         display: 'flex',
@@ -204,7 +222,6 @@ export default function Footer() {
                         © {new Date().getFullYear()} {COLLEGE_INFO.name}. All rights reserved.
                     </Typography>
 
-                    {/* DEVELOPER CREDIT */}
                     <Typography variant="body2" align="center" sx={{ fontSize: '0.8125rem', color: textMuted }}>
                         Developed by Kapini Technologies{' '}
                         <Link

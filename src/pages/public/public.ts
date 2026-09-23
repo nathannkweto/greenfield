@@ -77,3 +77,16 @@ export const GET_PROGRAM_OPTIONS = gql`
     }
   }
 `;
+
+export const GET_FOOTER_SCHOOLS = gql`
+  query GetFooterSchools($first: Int = 5) {
+    schools(first: $first) {
+      edges {
+        node {
+          id
+          name
+        }
+      }
+    }
+  }
+`;

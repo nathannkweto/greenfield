@@ -26,7 +26,7 @@ export const GET_FEE_PAYMENTS = gql`
               firstName
               lastName
             }
-            payments {
+            fee_payments {
               id
               amount
             }
@@ -49,7 +49,7 @@ export const GET_FEE_PAYMENTS = gql`
             studentFees {
               id
               amountZmw
-              payments {
+              fee_payments {
                 id
                 amount
               }

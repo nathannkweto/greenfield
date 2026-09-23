@@ -38,6 +38,7 @@ interface Fee {
 interface StudentFeeSummary {
     id: string;
     amountZmw: number;
+    fee_payments?: PaymentItem[];
     payments?: PaymentItem[];
 }
 
@@ -54,6 +55,7 @@ interface StudentFee {
     amountZmw: number;
     fee?: Fee;
     student?: Student;
+    fee_payments?: PaymentItem[];
     payments?: PaymentItem[];
 }
 
@@ -200,11 +202,14 @@ export default function FeePaymentsPage() {
                             {payments.length > 0 ? (
                                 payments.map((payment) => {
                                     const feeTotal = payment.studentFee?.amountZmw || 0;
-                                    const totalPaidOnFee =
-                                        payment.studentFee?.payments?.reduce(
-                                            (sum, p) => sum + p.amount,
-                                            0
-                                        ) || 0;
+                                    const paymentList =
+                                        payment.studentFee?.fee_payments ||
+                                        payment.studentFee?.payments ||
+                                        [];
+                                    const totalPaidOnFee = paymentList.reduce(
+                                        (sum, p) => sum + p.amount,
+                                        0
+                                    );
                                     const remainingBalance = Math.max(0, feeTotal - totalPaidOnFee);
 
                                     return (
@@ -285,8 +290,8 @@ export default function FeePaymentsPage() {
 
                                 const totalPaid =
                                     student.studentFees?.reduce((sum, sf) => {
-                                        const paymentsSum =
-                                            sf.payments?.reduce((pSum, p) => pSum + p.amount, 0) || 0;
+                                        const paymentList = sf.fee_payments || sf.payments || [];
+                                        const paymentsSum = paymentList.reduce((pSum, p) => pSum + p.amount, 0);
                                         return sum + paymentsSum;
                                     }, 0) || 0;
 
@@ -313,7 +318,7 @@ export default function FeePaymentsPage() {
                                             <Box
                                                 sx={{
                                                     display: 'flex',
-                                                    justify: 'space-between',
+                                                    justifyContent: 'space-between',
                                                     alignItems: 'center',
                                                     flexWrap: 'wrap',
                                                     gap: 1,

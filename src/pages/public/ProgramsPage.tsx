@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link as RouterLink } from 'react-router-dom';
+import { Link as RouterLink, useSearchParams } from 'react-router-dom';
 import {
     Container,
     Box,
@@ -23,7 +23,7 @@ import SchoolIcon from '@mui/icons-material/School';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import CloseIcon from '@mui/icons-material/Close';
 import { useQuery } from '@apollo/client/react';
-import { GET_PROGRAMS_PAGE_DATA } from './public.ts';
+import { GET_PROGRAMS_PAGE_DATA } from './public';
 
 interface School {
     id: string;
@@ -39,7 +39,6 @@ interface Program {
     school?: School;
 }
 
-// Relay Connection GraphQL Types
 interface Connection<T> {
     edges?: Array<{
         node: T;
@@ -53,13 +52,13 @@ interface GetProgramsPageDataResponse {
 }
 
 export default function ProgramsPage() {
-    const [selectedSchoolId, setSelectedSchoolId] = useState<string>('All');
+    const [searchParams, setSearchParams] = useSearchParams();
+    const selectedSchoolId = searchParams.get('schoolId') || 'All';
     const [isFilterOpen, setIsFilterOpen] = useState<boolean>(false);
 
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
-    // Fetch GraphQL Data
     const { loading, error, data } = useQuery<GetProgramsPageDataResponse>(GET_PROGRAMS_PAGE_DATA);
 
     if (loading) {
@@ -78,7 +77,6 @@ export default function ProgramsPage() {
         );
     }
 
-    // Safely unwrap Relay connections (edges -> node), flat arrays, or standard pagination
     const schools: School[] = Array.isArray(data?.schools)
         ? data.schools
         : 'edges' in (data?.schools || {})
@@ -99,8 +97,17 @@ export default function ProgramsPage() {
         ? programs
         : programs.filter((p) => (p.schoolId || p.school?.id) === selectedSchoolId);
 
+    const handleSchoolSelect = (schoolId: string) => {
+        if (schoolId === 'All') {
+            searchParams.delete('schoolId');
+            setSearchParams(searchParams, { replace: true });
+        } else {
+            setSearchParams({ schoolId }, { replace: true });
+        }
+    };
+
     const handleSelectMobile = (id: string) => {
-        setSelectedSchoolId(id);
+        handleSchoolSelect(id);
         setIsFilterOpen(false);
     };
 
@@ -121,7 +128,7 @@ export default function ProgramsPage() {
                 <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1.5, mb: 6, flexWrap: 'wrap' }}>
                     <Button
                         variant={selectedSchoolId === 'All' ? 'contained' : 'outlined'}
-                        onClick={() => setSelectedSchoolId('All')}
+                        onClick={() => handleSchoolSelect('All')}
                     >
                         All
                     </Button>
@@ -129,7 +136,7 @@ export default function ProgramsPage() {
                         <Button
                             key={school.id}
                             variant={selectedSchoolId === school.id ? 'contained' : 'outlined'}
-                            onClick={() => setSelectedSchoolId(school.id)}
+                            onClick={() => handleSchoolSelect(school.id)}
                         >
                             {school.name}
                         </Button>
@@ -160,7 +167,6 @@ export default function ProgramsPage() {
                     </Button>
 
                     <Dialog open={isFilterOpen} onClose={() => setIsFilterOpen(false)} fullWidth maxWidth="xs">
-                        {/* component="div" stops DialogTitle from rendering an <h2>, fixing the hydration error */}
                         <DialogTitle component="div" sx={{ fontWeight: 800, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <Typography variant="h6" sx={{ fontWeight: 800 }}>Select School</Typography>
                             <IconButton onClick={() => setIsFilterOpen(false)} aria-label="close">

@@ -34,6 +34,13 @@ interface UserNode {
     }>;
 }
 
+interface AccountSummary {
+    id: string;
+    accountNumber: string;
+    name: string;
+    type: string;
+}
+
 interface TransactionNode {
     id: string;
     amount: number;
@@ -42,8 +49,8 @@ interface TransactionNode {
     paymentMethod: string;
     manualReceiptNumber?: string;
     createdAt: string;
-    debitAccount: { id: string; accountNumber: string };
-    creditAccount: { id: string; accountNumber: string };
+    debitAccount: AccountSummary;
+    creditAccount: AccountSummary;
     cashier?: UserNode;
 }
 
@@ -61,6 +68,8 @@ interface ReceiptBookNode {
 interface AccountNode {
     id: string;
     accountNumber: string;
+    name: string;
+    type: string;
     createdAt: string;
 }
 
@@ -111,6 +120,23 @@ const getStatusChipColor = (status: string) => {
     }
 };
 
+const getAccountTypeChipColor = (type: string) => {
+    switch (type?.toLowerCase()) {
+        case 'asset':
+            return 'primary';
+        case 'liability':
+            return 'warning';
+        case 'equity':
+            return 'secondary';
+        case 'revenue':
+            return 'success';
+        case 'expense':
+            return 'error';
+        default:
+            return 'default';
+    }
+};
+
 export default function AccountingPage() {
     const [activeTab, setActiveTab] = useState(0);
     const { data, loading, error } = useQuery<AccountingData>(GET_ACCOUNTING_DATA, {
@@ -133,12 +159,10 @@ export default function AccountingPage() {
         );
     }
 
-    // Extract connection nodes
     const rawTransactions = data?.transactions?.edges?.map((e) => e.node) || [];
     const receiptBooks = data?.receiptBooks?.edges?.map((e) => e.node) || [];
     const accounts = data?.accounts?.edges?.map((e) => e.node) || [];
 
-    // Sort transactions latest first
     const transactions = [...rawTransactions].sort(
         (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
@@ -164,7 +188,7 @@ export default function AccountingPage() {
                 >
                     <Tab icon={<ReceiptIcon />} iconPosition="start" label="All Transactions" />
                     <Tab icon={<BookmarksIcon />} iconPosition="start" label="Receipt Books" />
-                    <Tab icon={<AccountBalanceIcon />} iconPosition="start" label="Accounts" />
+                    <Tab icon={<AccountBalanceIcon />} iconPosition="start" label="Accounts Directory" />
                 </Tabs>
             </Paper>
 
@@ -179,7 +203,7 @@ export default function AccountingPage() {
                     </Box>
                     <Divider />
                     <Table aria-label="transactions table">
-                        <TableHead sx={{ bgcolor: 'action.hover' }}>
+                        <TableHead sx={{ backgroundColor: 'action.hover' }}>
                             <TableRow>
                                 <TableCell sx={{ fontWeight: 700 }}>Date & Ref</TableCell>
                                 <TableCell sx={{ fontWeight: 700 }}>Debit Account</TableCell>
@@ -194,8 +218,8 @@ export default function AccountingPage() {
                             {transactions.length > 0 ? (
                                 transactions.map((tx) => {
                                     const isIncome =
-                                        tx.debitAccount?.accountNumber.startsWith('1') ||
-                                        tx.creditAccount?.accountNumber.startsWith('4');
+                                        tx.debitAccount?.accountNumber?.startsWith('1') ||
+                                        tx.creditAccount?.accountNumber?.startsWith('4');
 
                                     return (
                                         <TableRow key={tx.id} hover>
@@ -210,9 +234,19 @@ export default function AccountingPage() {
                                             </TableCell>
                                             <TableCell>
                                                 <Chip label={tx.debitAccount?.accountNumber || 'N/A'} size="small" variant="outlined" />
+                                                {tx.debitAccount?.name && (
+                                                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                                                        {tx.debitAccount.name}
+                                                    </Typography>
+                                                )}
                                             </TableCell>
                                             <TableCell>
                                                 <Chip label={tx.creditAccount?.accountNumber || 'N/A'} size="small" variant="outlined" />
+                                                {tx.creditAccount?.name && (
+                                                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                                                        {tx.creditAccount.name}
+                                                    </Typography>
+                                                )}
                                             </TableCell>
                                             <TableCell>
                                                 <Chip
@@ -236,7 +270,7 @@ export default function AccountingPage() {
                                                         label="Income"
                                                         size="small"
                                                         sx={{
-                                                            bgcolor: 'success.soft',
+                                                            backgroundColor: 'success.soft',
                                                             color: 'success.main',
                                                             fontWeight: 700,
                                                             border: '1px solid',
@@ -249,7 +283,7 @@ export default function AccountingPage() {
                                                         label="Expense"
                                                         size="small"
                                                         sx={{
-                                                            bgcolor: 'error.soft',
+                                                            backgroundColor: 'error.soft',
                                                             color: 'error.main',
                                                             fontWeight: 700,
                                                             border: '1px solid',
@@ -286,7 +320,7 @@ export default function AccountingPage() {
                     </Box>
                     <Divider />
                     <Table aria-label="receipt books table">
-                        <TableHead sx={{ bgcolor: 'action.hover' }}>
+                        <TableHead sx={{ backgroundColor: 'action.hover' }}>
                             <TableRow>
                                 <TableCell sx={{ fontWeight: 700 }}>Book Number</TableCell>
                                 <TableCell sx={{ fontWeight: 700 }}>Number Range</TableCell>
@@ -331,20 +365,22 @@ export default function AccountingPage() {
                 </TableContainer>
             )}
 
-            {/* TAB 3: ACCOUNTS */}
+            {/* TAB 3: ACCOUNTS DIRECTORY */}
             {activeTab === 2 && (
                 <TableContainer component={Paper} elevation={1}>
                     <Box sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
                         <AccountBalanceIcon color="primary" />
                         <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                            Ledger Accounts Directory
+                            Chart of Accounts Directory
                         </Typography>
                     </Box>
                     <Divider />
                     <Table aria-label="accounts table">
-                        <TableHead sx={{ bgcolor: 'action.hover' }}>
+                        <TableHead sx={{ backgroundColor: 'action.hover' }}>
                             <TableRow>
                                 <TableCell sx={{ fontWeight: 700 }}>Account Number</TableCell>
+                                <TableCell sx={{ fontWeight: 700 }}>Account Name</TableCell>
+                                <TableCell sx={{ fontWeight: 700 }}>Account Type</TableCell>
                                 <TableCell sx={{ fontWeight: 700 }}>Date Created</TableCell>
                             </TableRow>
                         </TableHead>
@@ -355,12 +391,23 @@ export default function AccountingPage() {
                                         <TableCell>
                                             <Chip label={account.accountNumber} size="small" variant="outlined" sx={{ fontWeight: 600 }} />
                                         </TableCell>
+                                        <TableCell sx={{ fontWeight: 600 }}>
+                                            {account.name}
+                                        </TableCell>
+                                        <TableCell>
+                                            <Chip
+                                                label={account.type}
+                                                size="small"
+                                                color={getAccountTypeChipColor(account.type)}
+                                                sx={{ textTransform: 'uppercase', fontWeight: 700, fontSize: '0.7rem' }}
+                                            />
+                                        </TableCell>
                                         <TableCell>{formatDate(account.createdAt)}</TableCell>
                                     </TableRow>
                                 ))
                             ) : (
                                 <TableRow>
-                                    <TableCell colSpan={2} align="center" sx={{ py: 3 }}>
+                                    <TableCell colSpan={4} align="center" sx={{ py: 3 }}>
                                         <Typography variant="body2" color="text.secondary">
                                             No general accounts found.
                                         </Typography>

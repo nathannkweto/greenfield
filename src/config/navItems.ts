@@ -3,7 +3,8 @@ import {
     People as PeopleIcon,
     School as SchoolIcon,
     Business as BusinessIcon,
-    Description as DescriptionIcon, QuestionMark, AdminPanelSettings
+    Description as DescriptionIcon, QuestionMark, AdminPanelSettings,
+    Payments, AccountBalance, Receipt
 } from '@mui/icons-material';
 import { type SvgIconComponent } from '@mui/icons-material';
 
@@ -18,17 +19,17 @@ export const adminNavItems: NavItem[] = [
     { name: 'Dashboard', path: '/admin/dashboard', icon: DashboardIcon },
     { name: 'Management', path: '/admin/management', icon: BusinessIcon },
     { name: 'Students', path: '/admin/students', icon: PeopleIcon },
-    /* {
+     {
         name: 'Finance',
         path: '/admin/finance',
         icon: Payments,
         children: [
             { name: 'Overview', path: '/admin/finance', icon: DashboardIcon },
             { name: 'Fee Packages', path: '/admin/finance/fees', icon: Receipt },
-            { name: 'Fee Payments', path: '/admin/finance/payments', icon: ReceiptLong },
+            // { name: 'Fee Payments', path: '/admin/finance/payments', icon: ReceiptLong },
             { name: 'Accounting', path: '/admin/finance/accounting', icon: AccountBalance },
         ],
-    }, */
+    },
     { name: 'Administrators', path: '/admin/administrators', icon: AdminPanelSettings },
 ];
 

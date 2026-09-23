@@ -15,10 +15,14 @@ export const GET_ACCOUNTING_DATA = gql`
           debitAccount {
             id
             accountNumber
+            name
+            type
           }
           creditAccount {
             id
             accountNumber
+            name
+            type
           }
           cashier {
             id
@@ -59,6 +63,8 @@ export const GET_ACCOUNTING_DATA = gql`
         node {
           id
           accountNumber
+          name
+          type
           createdAt
         }
       }
