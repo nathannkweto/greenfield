@@ -14,6 +14,12 @@ export const GET_FEE_TEMPLATES = gql`
             amountZmw
             amountUsd
             frequency
+            account {
+              id
+              accountNumber
+              name
+              type
+            }
           }
           programs {
             id
@@ -26,6 +32,12 @@ export const GET_FEE_TEMPLATES = gql`
               amountZmw
               amountUsd
               frequency
+              account {
+                id
+                accountNumber
+                name
+                type
+              }
             }
           }
         }
@@ -39,11 +51,43 @@ export const GET_FEE_TEMPLATES = gql`
           amountZmw
           amountUsd
           frequency
+          account {
+            id
+            accountNumber
+            name
+            type
+          }
           feeable {
             __typename
           }
         }
       }
+    }
+  }
+`;
+
+export const GET_REVENUE_ACCOUNTS = gql`
+  query GetRevenueAccounts {
+    accounts(type: "revenue", first: 100) {
+      edges {
+        node {
+          id
+          accountNumber
+          name
+          type
+        }
+      }
+    }
+  }
+`;
+
+export const GET_STUDENT_BY_NUMBER = gql`
+  query GetStudentByNumber($studentNumber: String!) {
+    student(studentNumber: $studentNumber) {
+      id # Returns public_id
+      studentNumber
+      firstName
+      lastName
     }
   }
 `;

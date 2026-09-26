@@ -16,12 +16,24 @@ import {
     CircularProgress,
     Alert,
     Divider,
+    Button,
+    IconButton,
+    Dialog,
+    DialogTitle,
+    DialogContent,
+    DialogActions,
+    TextField,
+    MenuItem,
+    Stack,
+    Tooltip,
 } from '@mui/material';
 import ReceiptIcon from '@mui/icons-material/Receipt';
 import BookmarksIcon from '@mui/icons-material/Bookmarks';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
+import EditIcon from '@mui/icons-material/Edit';
+
 import { GET_ACCOUNTING_DATA } from './queries';
 
 interface UserNode {
@@ -143,6 +155,21 @@ export default function AccountingPage() {
         variables: { first: 100 },
     });
 
+    // Receipt Book Creation State
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [createForm, setCreateForm] = useState({
+        bookNumber: '',
+        startNumber: '',
+        endNumber: '',
+        currentNumber: '',
+        assignedToUserId: '',
+    });
+
+    // Receipt Book Edit Status State
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [selectedBook, setSelectedBook] = useState<ReceiptBookNode | null>(null);
+    const [editStatus, setEditStatus] = useState<ReceiptBookNode['status']>('ACTIVE');
+
     if (loading) {
         return (
             <Box sx={{ display: 'flex', justifyContent: 'center', p: 5 }}>
@@ -166,6 +193,44 @@ export default function AccountingPage() {
     const transactions = [...rawTransactions].sort(
         (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
+
+    const handleOpenEditModal = (book: ReceiptBookNode) => {
+        setSelectedBook(book);
+        setEditStatus(book.status);
+        setIsEditModalOpen(true);
+    };
+
+    const handleCreateSubmit = () => {
+        // API omitted for now as requested
+        console.log('Create Receipt Book payload:', {
+            book_number: createForm.bookNumber,
+            start_number: Number(createForm.startNumber),
+            end_number: Number(createForm.endNumber),
+            current_number: createForm.currentNumber ? Number(createForm.currentNumber) : null,
+            assigned_to_user_id: createForm.assignedToUserId,
+            status: 'ACTIVE',
+        });
+
+        setIsCreateModalOpen(false);
+        setCreateForm({
+            bookNumber: '',
+            startNumber: '',
+            endNumber: '',
+            currentNumber: '',
+            assignedToUserId: '',
+        });
+    };
+
+    const handleEditSubmit = () => {
+        // API omitted for now as requested
+        console.log('Edit Receipt Book status payload:', {
+            id: selectedBook?.id,
+            status: editStatus,
+        });
+
+        setIsEditModalOpen(false);
+        setSelectedBook(null);
+    };
 
     return (
         <Box sx={{ width: '100%', flexGrow: 1 }}>
@@ -312,11 +377,20 @@ export default function AccountingPage() {
             {/* TAB 2: RECEIPT BOOKS */}
             {activeTab === 1 && (
                 <TableContainer component={Paper} elevation={1}>
-                    <Box sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <BookmarksIcon color="primary" />
-                        <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                            Physical Receipt Books Management
-                        </Typography>
+                    <Box sx={{ p: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <BookmarksIcon color="primary" />
+                            <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                                Physical Receipt Books Management
+                            </Typography>
+                        </Box>
+                        {/* <Button
+                            variant="contained"
+                            startIcon={<AddIcon />}
+                            onClick={() => setIsCreateModalOpen(true)}
+                        >
+                            Issue Receipt Book
+                        </Button> */}
                     </Box>
                     <Divider />
                     <Table aria-label="receipt books table">
@@ -328,6 +402,7 @@ export default function AccountingPage() {
                                 <TableCell sx={{ fontWeight: 700 }}>Assigned Cashier</TableCell>
                                 <TableCell sx={{ fontWeight: 700 }}>Date Issued</TableCell>
                                 <TableCell align="center" sx={{ fontWeight: 700 }}>Status</TableCell>
+                                <TableCell align="center" sx={{ fontWeight: 700 }}>Actions</TableCell>
                             </TableRow>
                         </TableHead>
                         <TableBody>
@@ -349,11 +424,22 @@ export default function AccountingPage() {
                                                 sx={{ fontWeight: 600 }}
                                             />
                                         </TableCell>
+                                        <TableCell align="center">
+                                            <Tooltip title="Update Status">
+                                                <IconButton
+                                                    size="small"
+                                                    color="primary"
+                                                    onClick={() => handleOpenEditModal(book)}
+                                                >
+                                                    <EditIcon fontSize="small" />
+                                                </IconButton>
+                                            </Tooltip>
+                                        </TableCell>
                                     </TableRow>
                                 ))
                             ) : (
                                 <TableRow>
-                                    <TableCell colSpan={6} align="center" sx={{ py: 3 }}>
+                                    <TableCell colSpan={7} align="center" sx={{ py: 3 }}>
                                         <Typography variant="body2" color="text.secondary">
                                             No physical receipt books registered.
                                         </Typography>
@@ -418,6 +504,98 @@ export default function AccountingPage() {
                     </Table>
                 </TableContainer>
             )}
+
+            {/* CREATE RECEIPT BOOK MODAL */}
+            <Dialog open={isCreateModalOpen} onClose={() => setIsCreateModalOpen(false)} maxWidth="sm" fullWidth>
+                <DialogTitle sx={{ fontWeight: 700 }}>Issue New Receipt Book</DialogTitle>
+                <DialogContent dividers>
+                    <Stack spacing={2.5} sx={{ mt: 0.5 }}>
+                        <TextField
+                            label="Book Number"
+                            fullWidth
+                            required
+                            placeholder="e.g. RB-2026-001"
+                            value={createForm.bookNumber}
+                            onChange={(e) => setCreateForm({ ...createForm, bookNumber: e.target.value })}
+                        />
+                        <Stack direction="row" spacing={2}>
+                            <TextField
+                                label="Start Number"
+                                type="number"
+                                fullWidth
+                                required
+                                placeholder="e.g. 1001"
+                                value={createForm.startNumber}
+                                onChange={(e) => setCreateForm({ ...createForm, startNumber: e.target.value })}
+                            />
+                            <TextField
+                                label="End Number"
+                                type="number"
+                                fullWidth
+                                required
+                                placeholder="e.g. 1050"
+                                value={createForm.endNumber}
+                                onChange={(e) => setCreateForm({ ...createForm, endNumber: e.target.value })}
+                            />
+                        </Stack>
+                        <TextField
+                            label="Current Leaf Number (Optional)"
+                            type="number"
+                            fullWidth
+                            helperText="Defaults to Start Number if left blank"
+                            placeholder="e.g. 1001"
+                            value={createForm.currentNumber}
+                            onChange={(e) => setCreateForm({ ...createForm, currentNumber: e.target.value })}
+                        />
+                        <TextField
+                            label="Assigned User ID"
+                            fullWidth
+                            required
+                            placeholder="Enter Assigned User ID"
+                            value={createForm.assignedToUserId}
+                            onChange={(e) => setCreateForm({ ...createForm, assignedToUserId: e.target.value })}
+                        />
+                    </Stack>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setIsCreateModalOpen(false)}>Cancel</Button>
+                    <Button variant="contained" onClick={handleCreateSubmit}>
+                        Issue Receipt Book
+                    </Button>
+                </DialogActions>
+            </Dialog>
+
+            {/* EDIT RECEIPT BOOK STATUS MODAL */}
+            <Dialog open={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} maxWidth="xs" fullWidth>
+                <DialogTitle sx={{ fontWeight: 700 }}>Update Receipt Book Status</DialogTitle>
+                <DialogContent dividers>
+                    {selectedBook && (
+                        <Stack spacing={2} sx={{ mt: 0.5 }}>
+                            <Typography variant="body2" color="text.secondary">
+                                Modifying status for Book <strong>{selectedBook.bookNumber}</strong>
+                            </Typography>
+                            <TextField
+                                select
+                                label="Status"
+                                fullWidth
+                                value={editStatus}
+                                onChange={(e) => setEditStatus(e.target.value as ReceiptBookNode['status'])}
+                            >
+                                <MenuItem value="ACTIVE">ACTIVE</MenuItem>
+                                <MenuItem value="COMPLETED">COMPLETED</MenuItem>
+                                <MenuItem value="LOST">LOST</MenuItem>
+                                <MenuItem value="CANCELLED">CANCELLED</MenuItem>
+                            </TextField>
+                        </Stack>
+                    )}
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setIsEditModalOpen(false)}>Cancel</Button>
+                    <Button variant="contained" color="primary" onClick={handleEditSubmit}>
+                        Save Status
+                    </Button>
+                </DialogActions>
+            </Dialog>
         </Box>
     );
 }

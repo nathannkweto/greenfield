@@ -56,6 +56,7 @@ import FeeTemplatesPage from "./pages/admin/Finance/FeePackages/Page.tsx";
 import FeePaymentsPage from "./pages/admin/Finance/FeePayments/Page.tsx";
 import AccountingPage from "./pages/admin/Finance/Accounting/Page.tsx";
 import StudentReconciliationPage from "./pages/admin/StudentReconciliationPage/Page.tsx";
+import AcademicCalendarPage from "./pages/admin/Calendar/Page.tsx";
 
 const throwNotFound = () => {
     throw new Response("Not Found", { status: 404 });
@@ -155,6 +156,7 @@ export const router = createBrowserRouter([
                                                     { path: "lecturers/:lecturerId", element: <LecturerDetailsPage /> }
                                                 ]
                                             },
+                                            { path: "calendar", element: <AcademicCalendarPage /> },
                                             { path: "administrators", element: <AdminAccountsPage /> },
                                             { path: "results", element: <ResultsPage /> },
                                             { path: "*", loader: throwNotFound }

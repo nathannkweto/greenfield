@@ -19,11 +19,16 @@ import {
     CardContent,
     CardHeader,
     Divider,
+    Button,
+    Snackbar,
 } from '@mui/material';
 import PaymentsIcon from '@mui/icons-material/Payments';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import SchoolIcon from '@mui/icons-material/School';
+import AddCardIcon from '@mui/icons-material/AddCard';
+
 import { GET_FEE_PAYMENTS } from './queries';
+import {RecordPaymentModal} from "./components/RecordPaymentModal.tsx";
 
 interface PaymentItem {
     id: string;
@@ -38,6 +43,7 @@ interface Fee {
 interface StudentFeeSummary {
     id: string;
     amountZmw: number;
+    fee?: Fee;
     fee_payments?: PaymentItem[];
     payments?: PaymentItem[];
 }
@@ -114,7 +120,15 @@ const formatDate = (dateString: string) => {
 
 export default function FeePaymentsPage() {
     const [activeTab, setActiveTab] = useState(0);
-    const { data, loading, error } = useQuery<GetFeePaymentsData>(GET_FEE_PAYMENTS, {
+    const [isRecordModalOpen, setIsRecordModalOpen] = useState(false);
+
+    const [toast, setToast] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
+        open: false,
+        message: '',
+        severity: 'success',
+    });
+
+    const { data, loading, error, refetch } = useQuery<GetFeePaymentsData>(GET_FEE_PAYMENTS, {
         variables: { first: 100 },
     });
 
@@ -134,28 +148,45 @@ export default function FeePaymentsPage() {
         );
     }
 
-    // Extract fee payments from connection edges
-    const rawPayments =
-        data?.feePayments?.edges?.map((edge) => edge.node) || [];
-
-    // Sort payments latest first
+    const rawPayments = data?.feePayments?.edges?.map((edge) => edge.node) || [];
     const payments = [...rawPayments].sort(
         (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
 
-    // Extract programs from connection edges
-    const programs =
-        data?.programs?.edges?.map((edge) => edge.node) || [];
+    const programs = data?.programs?.edges?.map((edge) => edge.node) || [];
+
+    // Extract all students across programs for payment assignment
+    const allStudents: Student[] = programs.flatMap((p) => p.students || []);
+
+    const handleSuccess = (msg: string) => {
+        setToast({ open: true, message: msg, severity: 'success' });
+        refetch();
+    };
+
+    const handleError = (msg: string) => {
+        setToast({ open: true, message: msg, severity: 'error' });
+    };
 
     return (
         <Box sx={{ width: '100%', flexGrow: 1 }}>
-            <Box sx={{ mb: 3 }}>
-                <Typography variant="h5" sx={{ fontWeight: 700, mb: 0.5 }}>
-                    Fee Payments & Ledger
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                    View recent transactions, payment history, and student balance totals by academic program.
-                </Typography>
+            {/* PAGE HEADER */}
+            <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
+                <Box>
+                    <Typography variant="h5" sx={{ fontWeight: 700, mb: 0.5 }}>
+                        Fee Payments & Ledger
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                        View recent transactions, payment history, and student balance totals by academic program.
+                    </Typography>
+                </Box>
+                <Button
+                    variant="contained"
+                    startIcon={<AddCardIcon />}
+                    onClick={() => setIsRecordModalOpen(true)}
+                    sx={{ fontWeight: 600, px: 2.5, py: 1 }}
+                >
+                    Record Fee Payment
+                </Button>
             </Box>
 
             {/* TABS HEADER */}
@@ -170,12 +201,12 @@ export default function FeePaymentsPage() {
                     <Tab
                         icon={<AccountBalanceWalletIcon />}
                         iconPosition="start"
-                        label="Outstanding Balances by Program"
+                        label="Outstanding Balances"
                     />
                 </Tabs>
             </Paper>
 
-            {/* TAB 1: ALL PAYMENTS (LATEST FIRST) */}
+            {/* TAB 1: ALL PAYMENTS */}
             {activeTab === 0 && (
                 <TableContainer component={Paper} elevation={1}>
                     <Box sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -206,10 +237,7 @@ export default function FeePaymentsPage() {
                                         payment.studentFee?.fee_payments ||
                                         payment.studentFee?.payments ||
                                         [];
-                                    const totalPaidOnFee = paymentList.reduce(
-                                        (sum, p) => sum + p.amount,
-                                        0
-                                    );
+                                    const totalPaidOnFee = paymentList.reduce((sum, p) => sum + p.amount, 0);
                                     const remainingBalance = Math.max(0, feeTotal - totalPaidOnFee);
 
                                     return (
@@ -283,26 +311,17 @@ export default function FeePaymentsPage() {
                         programs.map((program) => {
                             const studentBalances = (program.students || []).map((student) => {
                                 const totalBilled =
-                                    student.studentFees?.reduce(
-                                        (sum, sf) => sum + sf.amountZmw,
-                                        0
-                                    ) || 0;
+                                    student.studentFees?.reduce((sum, sf) => sum + sf.amountZmw, 0) || 0;
 
                                 const totalPaid =
                                     student.studentFees?.reduce((sum, sf) => {
                                         const paymentList = sf.fee_payments || sf.payments || [];
-                                        const paymentsSum = paymentList.reduce((pSum, p) => pSum + p.amount, 0);
-                                        return sum + paymentsSum;
+                                        return sum + paymentList.reduce((pSum, p) => pSum + p.amount, 0);
                                     }, 0) || 0;
 
                                 const outstanding = Math.max(0, totalBilled - totalPaid);
 
-                                return {
-                                    student,
-                                    totalBilled,
-                                    totalPaid,
-                                    outstanding,
-                                };
+                                return { student, totalBilled, totalPaid, outstanding };
                             });
 
                             const programOutstandingTotal = studentBalances.reduce(
@@ -315,15 +334,7 @@ export default function FeePaymentsPage() {
                                     <CardHeader
                                         avatar={<SchoolIcon color="primary" />}
                                         title={
-                                            <Box
-                                                sx={{
-                                                    display: 'flex',
-                                                    justifyContent: 'space-between',
-                                                    alignItems: 'center',
-                                                    flexWrap: 'wrap',
-                                                    gap: 1,
-                                                }}
-                                            >
+                                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 1 }}>
                                                 <Typography variant="h6">
                                                     {program.code} — {program.title}
                                                 </Typography>
@@ -404,6 +415,26 @@ export default function FeePaymentsPage() {
                     )}
                 </Box>
             )}
+
+            {/* RECORD PAYMENT MODAL */}
+            <RecordPaymentModal
+                open={isRecordModalOpen}
+                onClose={() => setIsRecordModalOpen(false)}
+                students={allStudents}
+                onSuccess={handleSuccess}
+                onError={handleError}
+            />
+
+            <Snackbar
+                open={toast.open}
+                autoHideDuration={5000}
+                onClose={() => setToast({ ...toast, open: false })}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+            >
+                <Alert severity={toast.severity} onClose={() => setToast({ ...toast, open: false })}>
+                    {toast.message}
+                </Alert>
+            </Snackbar>
         </Box>
     );
 }

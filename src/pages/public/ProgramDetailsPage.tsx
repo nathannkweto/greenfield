@@ -8,11 +8,13 @@ import {
     useTheme,
     useMediaQuery,
     CircularProgress,
-    Alert
+    Alert,
+    Chip
 } from '@mui/material';
 import Grid from '@mui/material/Grid';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import WorkspacePremiumIcon from '@mui/icons-material/WorkspacePremium';
+import PaymentsIcon from '@mui/icons-material/Payments';
 import { useParams, Link as RouterLink } from 'react-router-dom';
 import { useQuery } from '@apollo/client/react';
 import { GET_PROGRAM_DETAILS } from './public.ts';
@@ -42,6 +44,22 @@ interface Requirement {
     sortOrder?: number;
 }
 
+interface Account {
+    id: string;
+    accountNumber?: string;
+    name?: string;
+    type?: string;
+}
+
+interface Fee {
+    id: string;
+    title: string;
+    frequency?: string;
+    amountZmw?: number | string;
+    amountUsd?: number | string;
+    account?: Account;
+}
+
 interface Program {
     id: string;
     code?: string;
@@ -53,6 +71,7 @@ interface Program {
     longDescription?: string;
     requirements?: Requirement[];
     curricula?: CurriculumItem[];
+    fees?: Fee[];
     school?: School;
 }
 
@@ -98,7 +117,8 @@ function formatCurriculumData(curricula?: CurriculumItem[]): FormattedYear[] {
 }
 
 export default function ProgramDetailsPage() {
-    const { programId } = useParams<{ programId: string }>();
+    const params = useParams<{ programId?: string; id?: string }>();
+    const programId = params.programId || params.id;
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
@@ -118,10 +138,19 @@ export default function ProgramDetailsPage() {
         );
     }
 
-    if (error || !data?.program) {
+    if (error) {
+        console.error('GraphQL Program Details Error:', error);
         return (
             <Container maxWidth="lg" sx={{ py: 6 }}>
-                <Alert severity="error">Program details not found.</Alert>
+                <Alert severity="error">Error loading program details: {error.message}</Alert>
+            </Container>
+        );
+    }
+
+    if (!data?.program) {
+        return (
+            <Container maxWidth="lg" sx={{ py: 6 }}>
+                <Alert severity="warning">Program details not found.</Alert>
             </Container>
         );
     }
@@ -131,6 +160,7 @@ export default function ProgramDetailsPage() {
     const sortedRequirements = program.requirements
         ? [...program.requirements].sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
         : [];
+    const fees = program.fees ?? [];
 
     return (
         <Container maxWidth="lg" sx={{ py: { xs: 4, md: 6 } }}>
@@ -249,7 +279,64 @@ export default function ProgramDetailsPage() {
                 </Box>
             )}
 
-            {/* SECTION 3: Curriculum Breakdown */}
+            {/* SECTION 3: Program Fees */}
+            {fees.length > 0 && (
+                <Box sx={{ mb: { xs: 4, md: 5 } }}>
+                    <Typography variant="h6" sx={{ fontWeight: 800, mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <PaymentsIcon color="primary" /> Program Fees
+                    </Typography>
+                    <Grid container spacing={2}>
+                        {fees.map((fee) => (
+                            <Grid key={fee.id} size={{ xs: 12, sm: 6, md: 4 }}>
+                                <Paper
+                                    variant="outlined"
+                                    sx={{
+                                        p: 2.5,
+                                        borderRadius: 3,
+                                        borderColor: 'divider',
+                                        height: '100%',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        justifyContent: 'space-between'
+                                    }}
+                                >
+                                    <Box>
+                                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+                                            <Typography variant="subtitle1" sx={{ fontWeight: 700, color: 'text.primary' }}>
+                                                {fee.title}
+                                            </Typography>
+                                            {fee.frequency && (
+                                                <Chip
+                                                    label={fee.frequency}
+                                                    size="small"
+                                                    color="primary"
+                                                    variant="outlined"
+                                                    sx={{ textTransform: 'capitalize', fontWeight: 600 }}
+                                                />
+                                            )}
+                                        </Box>
+                                    </Box>
+
+                                    <Box sx={{ mt: 2, pt: 1.5, borderTop: 1, borderColor: 'divider' }}>
+                                        {fee.amountZmw !== undefined && fee.amountZmw !== null && (
+                                            <Typography variant="h6" sx={{ fontWeight: 800, color: 'primary.main' }}>
+                                                ZMW {Number(fee.amountZmw).toLocaleString()}
+                                            </Typography>
+                                        )}
+                                        {fee.amountUsd !== undefined && fee.amountUsd !== null && (
+                                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontWeight: 600 }}>
+                                                USD ${Number(fee.amountUsd).toLocaleString()}
+                                            </Typography>
+                                        )}
+                                    </Box>
+                                </Paper>
+                            </Grid>
+                        ))}
+                    </Grid>
+                </Box>
+            )}
+
+            {/* SECTION 4: Curriculum Breakdown */}
             {formattedCurriculum.length > 0 && (
                 <>
                     <Typography variant="h6" sx={{ fontWeight: 800, mb: 2 }}>Curriculum Breakdown</Typography>

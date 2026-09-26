@@ -7,6 +7,7 @@ import {
     Payments, AccountBalance, Receipt
 } from '@mui/icons-material';
 import { type SvgIconComponent } from '@mui/icons-material';
+import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 
 export interface NavItem {
     name: string;
@@ -17,6 +18,7 @@ export interface NavItem {
 
 export const adminNavItems: NavItem[] = [
     { name: 'Dashboard', path: '/admin/dashboard', icon: DashboardIcon },
+    { name: 'Calendar', path: '/admin/calendar', icon: CalendarTodayIcon },
     { name: 'Management', path: '/admin/management', icon: BusinessIcon },
     { name: 'Students', path: '/admin/students', icon: PeopleIcon },
      {

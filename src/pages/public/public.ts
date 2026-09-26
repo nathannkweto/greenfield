@@ -57,6 +57,19 @@ export const GET_PROGRAM_DETAILS = gql`
           }
         }
       }
+      fees {
+        id
+        title
+        amountZmw
+        amountUsd
+        frequency
+        account {
+          id
+          accountNumber
+          name
+          type
+        }
+      }
       school {
         id
         name
