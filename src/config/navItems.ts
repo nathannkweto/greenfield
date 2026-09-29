@@ -4,11 +4,12 @@ import {
     School as SchoolIcon,
     Business as BusinessIcon,
     Description as DescriptionIcon, QuestionMark, AdminPanelSettings,
-    Payments, AccountBalance, Receipt
+    Payments, AccountBalance, Receipt, FactCheck, HistoryEdu
 } from '@mui/icons-material';
 import { type SvgIconComponent } from '@mui/icons-material';
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
+import TrendingUpIcon from "@mui/icons-material/TrendingUp";
 
 export interface NavItem {
     name: string;
@@ -42,8 +43,16 @@ export const lecturerNavItems: NavItem[] = [
 
 export const studentNavItems: NavItem[] = [
     { name: 'Dashboard', path: '/student/dashboard', icon: DashboardIcon },
-    { name: 'Academics', path: '/student/academics', icon: SchoolIcon },
-    // { name: 'Exams', path: '/student/exams', icon: AssignmentIcon },
+    {
+        name: 'Academics',
+        path: '/student/academics',
+        icon: SchoolIcon,
+        children: [
+            { name: 'Progress', path: '/student/academics', icon: TrendingUpIcon },
+            { name: 'Results', path: '/student/academics/results', icon: FactCheck },
+            { name: 'History', path: '/student/academics/history', icon: HistoryEdu },
+        ],
+    },
     { name: 'Fees', path: '/student/fees', icon: AccountBalanceWalletIcon },
     { name: 'My Info', path: '/student/info', icon: QuestionMark },
 ];

@@ -16,7 +16,7 @@ import {
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 
-import { GET_STUDENT_ACADEMICS } from './queries';
+import { GET_STUDENT_ACADEMICS } from './queries.ts';
 
 export interface Course {
     id: string;

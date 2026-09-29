@@ -1,11 +1,11 @@
-import { useContext, useState, useEffect } from 'react';
+import { useContext, useState, type MouseEvent } from 'react';
 import { client as apolloClient } from '../apolloClient';
 import { Outlet, Link as RouterLink, useLocation, useNavigate } from 'react-router-dom';
 import {
     AppBar, Toolbar, Typography, Box, Drawer, List, ListItem,
     ListItemButton, ListItemIcon, ListItemText, BottomNavigation,
     BottomNavigationAction, Paper, useMediaQuery, useTheme, Button, IconButton,
-    CircularProgress, Collapse
+    CircularProgress, Collapse, Menu, MenuItem
 } from '@mui/material';
 import LogoutIcon from '@mui/icons-material/Logout';
 import DarkModeIcon from '@mui/icons-material/DarkMode';
@@ -34,12 +34,15 @@ function SidebarNavItem({ item, currentPath }: { item: NavItem; currentPath: str
     );
 
     const [open, setOpen] = useState(isSelected || Boolean(isChildSelected));
+    const [prevPath, setPrevPath] = useState(currentPath);
 
-    useEffect(() => {
-        if (isChildSelected) {
+    // Sync open state when path changes during render (prevents set-state-in-effect warning)
+    if (prevPath !== currentPath) {
+        setPrevPath(currentPath);
+        if (isChildSelected && !open) {
             setOpen(true);
         }
-    }, [currentPath, isChildSelected]);
+    }
 
     if (hasChildren) {
         return (
@@ -121,6 +124,10 @@ export default function PortalLayout({ navItems }: PortalLayoutProps) {
     const [isLoggingOut, setIsLoggingOut] = useState(false);
     const { toggleColorMode } = useContext(ColorModeContext);
 
+    // Mobile nested menu state
+    const [mobileMenuAnchor, setMobileMenuAnchor] = useState<null | HTMLElement>(null);
+    const [selectedParentItem, setSelectedParentItem] = useState<NavItem | null>(null);
+
     const handleLogout = async () => {
         setIsLoggingOut(true);
         try {
@@ -134,6 +141,34 @@ export default function PortalLayout({ navItems }: PortalLayoutProps) {
             setIsLoggingOut(false);
             navigate('/login', { replace: true, state: {} });
         }
+    };
+
+    // Calculate active top-level nav item path for mobile bottom navigation highlight
+    const activeTopLevel = navItems.find((item) => {
+        if (location.pathname === item.path) return true;
+        return item.children?.some(
+            (child) => location.pathname === child.path || (child.path !== '/' && location.pathname.startsWith(child.path))
+        );
+    });
+    const activeValue = activeTopLevel ? activeTopLevel.path : location.pathname;
+
+    const handleBottomNavClick = (event: MouseEvent<HTMLButtonElement>, item: NavItem) => {
+        if (item.children && item.children.length > 0) {
+            setMobileMenuAnchor(event.currentTarget);
+            setSelectedParentItem(item);
+        } else {
+            navigate(item.path);
+        }
+    };
+
+    const handleMobileMenuClose = () => {
+        setMobileMenuAnchor(null);
+        setSelectedParentItem(null);
+    };
+
+    const handleChildNavClick = (path: string) => {
+        handleMobileMenuClose();
+        navigate(path);
     };
 
     return (
@@ -260,8 +295,7 @@ export default function PortalLayout({ navItems }: PortalLayoutProps) {
                 <Paper sx={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 1000 }} elevation={3}>
                     <BottomNavigation
                         showLabels={false}
-                        value={location.pathname}
-                        onChange={(_, newValue) => navigate(newValue)}
+                        value={activeValue}
                     >
                         {navItems.map((item) => (
                             <BottomNavigationAction
@@ -269,9 +303,49 @@ export default function PortalLayout({ navItems }: PortalLayoutProps) {
                                 label={item.name}
                                 value={item.path}
                                 icon={<item.icon />}
+                                onClick={(e) => handleBottomNavClick(e, item)}
                             />
                         ))}
                     </BottomNavigation>
+
+                    {/* POPUP SUB-MENU FOR NESTED ITEMS ON MOBILE */}
+                    <Menu
+                        anchorEl={mobileMenuAnchor}
+                        open={Boolean(mobileMenuAnchor)}
+                        onClose={handleMobileMenuClose}
+                        anchorOrigin={{
+                            vertical: 'top',
+                            horizontal: 'center',
+                        }}
+                        transformOrigin={{
+                            vertical: 'bottom',
+                            horizontal: 'center',
+                        }}
+                    >
+                        {selectedParentItem?.children?.map((child) => {
+                            const isChildActive = location.pathname === child.path;
+                            return (
+                                <MenuItem
+                                    key={child.name}
+                                    selected={isChildActive}
+                                    onClick={() => handleChildNavClick(child.path)}
+                                    sx={{ gap: 1.5, minWidth: 160 }}
+                                >
+                                    <ListItemIcon sx={{ minWidth: 'auto', color: isChildActive ? 'primary.main' : 'inherit' }}>
+                                        <child.icon fontSize="small" />
+                                    </ListItemIcon>
+                                    <ListItemText
+                                        disableTypography
+                                        primary={
+                                            <Typography variant="body2" fontWeight={isChildActive ? 600 : 400}>
+                                                {child.name}
+                                            </Typography>
+                                        }
+                                    />
+                                </MenuItem>
+                            );
+                        })}
+                    </Menu>
                 </Paper>
             )}
         </Box>

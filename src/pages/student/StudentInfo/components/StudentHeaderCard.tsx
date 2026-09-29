@@ -20,7 +20,6 @@ export function StudentHeaderCard({ student }: StudentHeaderCardProps) {
                 p: { xs: 2.5, sm: 3.5 },
                 borderRadius: 4,
                 borderColor: 'divider',
-                background: 'linear-gradient(135deg, rgba(25, 118, 210, 0.04) 0%, rgba(255, 255, 255, 1) 100%)',
             }}
         >
             <Box

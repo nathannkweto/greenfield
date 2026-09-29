@@ -29,7 +29,7 @@ import InfoPage from "./pages/applicant/Info/Page";
 
 // Student Pages
 import StudentDashboard from "./pages/student/StudentDashboard/Page";
-import StudentAcademics from "./pages/student/StudentAcademics/Page";
+import StudentAcademics from "./pages/student/StudentAcademics/Progress/Page.tsx";
 import CourseDetails from "./pages/student/CourseDetailPage/Page";
 import Exams from "./pages/student/StudentExams";
 
@@ -58,6 +58,8 @@ import StudentReconciliationPage from "./pages/admin/StudentReconciliationPage/P
 import AcademicCalendarPage from "./pages/admin/Calendar/Page.tsx";
 import StudentFeesPage from "./pages/student/StudentFees/Page.tsx";
 import StudentInfoPage from "./pages/student/StudentInfo/Page.tsx";
+import StudentResultsPage from "./pages/student/StudentAcademics/Results/Page.tsx";
+import AcademicHistoryPage from "./pages/student/StudentAcademics/History/Page.tsx";
 
 const throwNotFound = () => {
     throw new Response("Not Found", { status: 404 });
@@ -230,7 +232,9 @@ export const router = createBrowserRouter([
                                                 path: "academics",
                                                 children: [
                                                     { index: true, element: <StudentAcademics /> },
-                                                    { path: "course/:courseId", element: <CourseDetails /> }
+                                                    { path: "course/:courseId", element: <CourseDetails /> },
+                                                    { path: "results", element: <StudentResultsPage /> },
+                                                    { path: "history", element: <AcademicHistoryPage /> }
                                                 ]
                                             },
                                             {
