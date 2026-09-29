@@ -32,7 +32,6 @@ import StudentDashboard from "./pages/student/StudentDashboard/Page";
 import StudentAcademics from "./pages/student/StudentAcademics/Page";
 import CourseDetails from "./pages/student/CourseDetailPage/Page";
 import Exams from "./pages/student/StudentExams";
-import StudentSettings from "./pages/student/StudentSettings";
 
 // Lecturer Pages
 import LecturerDashboard from "./pages/lecturer/LecturerDashboard/Page";
@@ -57,6 +56,8 @@ import FeePaymentsPage from "./pages/admin/Finance/FeePayments/Page.tsx";
 import AccountingPage from "./pages/admin/Finance/Accounting/Page.tsx";
 import StudentReconciliationPage from "./pages/admin/StudentReconciliationPage/Page.tsx";
 import AcademicCalendarPage from "./pages/admin/Calendar/Page.tsx";
+import StudentFeesPage from "./pages/student/StudentFees/Page.tsx";
+import StudentInfoPage from "./pages/student/StudentInfo/Page.tsx";
 
 const throwNotFound = () => {
     throw new Response("Not Found", { status: 404 });
@@ -232,8 +233,14 @@ export const router = createBrowserRouter([
                                                     { path: "course/:courseId", element: <CourseDetails /> }
                                                 ]
                                             },
+                                            {
+                                                path: "fees",
+                                                children: [
+                                                    { index: true, element: <StudentFeesPage /> },
+                                                ]
+                                            },
                                             { path: "exams", element: <Exams /> },
-                                            { path: "settings", element: <StudentSettings /> },
+                                            { path: "info", element: <StudentInfoPage /> },
                                             { path: "*", loader: throwNotFound }
                                         ]
                                     }

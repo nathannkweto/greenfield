@@ -8,6 +8,7 @@ import {
 } from '@mui/icons-material';
 import { type SvgIconComponent } from '@mui/icons-material';
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
+import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
 
 export interface NavItem {
     name: string;
@@ -43,8 +44,8 @@ export const studentNavItems: NavItem[] = [
     { name: 'Dashboard', path: '/student/dashboard', icon: DashboardIcon },
     { name: 'Academics', path: '/student/academics', icon: SchoolIcon },
     // { name: 'Exams', path: '/student/exams', icon: AssignmentIcon },
-    // { name: 'Fees', path: '/student/fees', icon: AccountBalanceWalletIcon },
-    // { name: 'Settings', path: '/student/settings', icon: SettingsIcon },
+    { name: 'Fees', path: '/student/fees', icon: AccountBalanceWalletIcon },
+    { name: 'My Info', path: '/student/info', icon: QuestionMark },
 ];
 
 export const applicantNavItems: NavItem[] = [

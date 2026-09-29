@@ -1,7 +1,7 @@
 import { gql } from '@apollo/client';
 
-export const GET_STUDENT_PORTAL = gql`
-  query GetStudentPortal {
+export const GET_STUDENT_DASHBOARD = gql`
+  query GetStudentDashboard {
     me {
       id
       email
@@ -9,35 +9,14 @@ export const GET_STUDENT_PORTAL = gql`
         id
         studentNumber
         admissionNumber
-        applicationNumber
         firstName
         middleNames
         lastName
-        email
-        phone
-        dob
-        address
-        emergencyContact
-        sex
-        maritalStatus
-        nationality
-        nrcNumber
-        passportNumber
-        intake
-        studyMode
         status
-        applicationDate
-        admissionDate
-        graduationDate
-        cgpa
-        creditsCompleted
         program {
           id
           code
           title
-          level
-          durationValue
-          durationUnit
         }
         enrollments {
           id
@@ -51,10 +30,40 @@ export const GET_STUDENT_PORTAL = gql`
               code
               title
               credits
+              description
             }
           }
         }
+        studentFees {
+          id
+          amountZmw
+          amountUsd
+          fee {
+            id
+            title
+          }
+          fee_payments {
+            id
+            amount
+          }
+        }
       }
+    }
+    academicTerms {
+      id
+      term
+      startDate
+      endDate
+      academicYear {
+        id
+        year
+      }
+    }
+    academicEvents {
+      id
+      title
+      startDate
+      endDate
     }
   }
 `;
